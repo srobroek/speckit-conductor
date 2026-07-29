@@ -1,0 +1,66 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: pytest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+        with:
+          python-version: "3.13"
+
+      # Skips cleanly while tests/ is empty, so the gate exists from the first
+      # commit rather than being added once something is already untested.
+      - name: Run tests
+        run: |
+          if [ -d tests ] && [ -n "$(find tests -name 'test_*.py' -print -quit)" ]; then
+            uv run --with pytest pytest -q tests/
+          else
+            echo "no tests yet"
+          fi
+
+  formulas:
+    name: bd cook
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+
+      # `bd cook` is the formula diagnostic. `bd mol pour` reports every formula
+      # error as "not found as formula or proto ID" while naming a file that exists,
+      # so a broken formula looks like a missing one.
+      - name: Install bd
+        uses: jdx/mise-action@9e7f7633ff6f6d6048a9418a68d48f288f50eb14  # v4.2.3
+        with:
+          install: true
+          cache: true
+
+      - name: Cook every formula
+        run: |
+          shopt -s nullglob
+          found=0
+          for f in formulas/*.formula.toml; do
+            found=1
+            name="$(basename "$f" .formula.toml)"
+            echo "== $name"
+            mkdir -p .beads/formulas && cp "$f" .beads/formulas/
+            bd cook "$name" >/dev/null
+          done
+          [ "$found" -eq 1 ] || echo "no formulas yet"

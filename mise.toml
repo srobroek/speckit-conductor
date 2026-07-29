@@ -1,0 +1,4 @@
+# bd is the workflow engine: formulas are cooked and poured with it, so CI needs it
+# pinned rather than resolved to whatever is latest on the day.
+[tools]
+"aqua:gastownhall/beads" = "1.1.2"

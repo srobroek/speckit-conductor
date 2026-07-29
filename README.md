@@ -4,34 +4,43 @@ SpecKit workflow orchestration on [beads](https://github.com/gastownhall/beads):
 phase-DAG formulas, human approval gates, and bonded loops for spec-driven
 development.
 
-## Status
+## State at HEAD
 
-**Scaffold.** The build plan is in [`docs/BUILD-PLAN.md`](docs/BUILD-PLAN.md).
+A scaffold: `apm.yml`, the release machinery, and a build plan. No formula, skill,
+or script has been written yet. [`docs/BUILD-PLAN.md`](docs/BUILD-PLAN.md) specifies
+the work.
 
-This repository is the extraction target for the SpecKit workflow layer currently
-living in `srobroek/agentic-packages` as three packages: `speckit`,
-`speckit-beads`, and `steering-speckit`. Those merge into one package first; this
-repository receives the merged result. Extraction happens **after** the merge lands
-and its dependents are migrated, not before -- a package that is renamed and
+The SpecKit workflow layer lives in `srobroek/agentic-packages` as three packages:
+`speckit`, `speckit-beads`, and `steering-speckit`. Those merge into one package
+there, and this repository receives the merged result. Extraction waits for the
+merge and for its dependents to migrate, because a package that is renamed and
 relocated in one step breaks `apm install` at resolution.
 
-## What it will be
+## What it will hold
 
-- Three standalone phase-DAG formulas -- `minimal`, `lean`, `full` -- poured once
-  per feature, each declaring its own step graph rather than composing, because a
-  composing child silently drops a parent's approval gate.
-- Bonded loop formulas -- `fix-findings`, `iterate`, `bugfix`, `refine` -- attached
-  to a running molecule via `bd mol bond`, because a loop of unknown length cannot
-  be expressed as formula steps.
-- A standalone `bugfix-spec` formula that creates its own spec directory.
-- Routes reached by judgement rather than as steps: `converge`, `tinyspec`,
-  `reconcile`.
-- A guard that keeps task state in beads rather than `tasks.md`.
-- Authoring docs so consumers can add their own extensions and formulas.
+Phase-DAG formulas at three depths, `minimal`, `lean`, and `full`, each poured once
+per feature. Each declares its own step graph. A formula that composes from a parent
+drops the parent's `[steps.gate]` on any step it redeclares, silently, and this
+workflow carries three human approval gates.
 
-## Naming
+Bonded loop formulas for `fix-findings`, `iterate`, `bugfix`, and `refine`, attached
+to a running molecule with `bd mol bond`. Their iteration count is unknown when the
+formula is cooked, which a fixed step list cannot express.
 
-Chosen over `speckit-orchestrator` because a sibling package already coordinates
-parallel subagents through beads DAGs; the names would not convey that this one
-sequences phases for a single feature while that one dispatches agents. A conductor
-keeps time through a score, which is what phase sequencing is.
+A `bugfix-spec` formula that creates its own spec directory, for a defect found with
+no active spec.
+
+Routes reached by judgement rather than as steps: `converge`, `tinyspec`,
+`reconcile`.
+
+A guard that keeps task state in beads rather than `tasks.md`.
+
+Authoring docs, so a consumer can add an extension or a formula. The community
+catalog holds 143 extensions and grows; the traps that make a formula fail silently
+are documented with their reproductions.
+
+## The name
+
+A sibling package, `orchestrate`, coordinates parallel subagents through beads DAGs.
+This one sequences phases for a single feature. A conductor keeps time through a
+score, which is what phase sequencing is.

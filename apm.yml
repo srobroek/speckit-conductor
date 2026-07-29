@@ -1,0 +1,23 @@
+name: speckit-conductor
+version: 0.0.0
+description: >-
+  SpecKit workflow orchestration on beads. Standalone phase-DAG formulas at
+  minimal, lean, and full depth are poured once per feature, with human approval
+  gates as real DAG nodes and bonded loop formulas for the review, iterate,
+  bugfix, and refine cycles whose step count is unknown when the formula is
+  cooked. Task state lives in beads rather than tasks.md. Includes authoring docs
+  for adding an extension or a formula. Requires the bd CLI and spec-kit.
+author: Sjors Robroek
+license: Apache-2.0
+type: hybrid
+targets:
+  - claude
+  - codex
+includes: auto
+category: project-lifecycle
+tags:
+  - speckit
+  - beads
+  - workflow
+  - formulas
+  - spec-driven-development
