@@ -45,7 +45,8 @@ packages and wires four agents and four skills on each.
 | `scripts/speckit-tasks-guard.py` | denies every Write/Edit to `specs/*/tasks.md` in a beads repo |
 | `scripts/validate-dag.py` | checks the formula's shape |
 | `scripts/speckit-pr-title.py` | derives a PR title from the spec |
-| 4 agents | `speckit-implement-task`, `speckit-research`, `speckit-sync`, `speckit-verify` |
+| `speckit-sync` agent | audits artifacts in two scopes: `drift` (spec versus code) and `conflicts` (spec versus spec) |
+| `speckit-verify` agent | audits in two modes: `tasks` (phantom completion) and `requirements` (code against `spec.md`) |
 | `speckit-setup` skill | installs spec-kit, its extensions, and the formula into `.beads/formulas/` |
 | `speckit-bugfix` skill | the bugfix route |
 | steering | one spec dir to one molecule root, the routing table, and why `tasks.md` is never authored |
