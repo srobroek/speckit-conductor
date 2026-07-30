@@ -1,5 +1,5 @@
 name: speckit-conductor
-version: 1.1.0  # x-release-please-version
+version: 2.0.0  # x-release-please-version
 description: >-
   SpecKit workflow orchestration on beads. Standalone phase-DAG formulas at
   minimal, lean, and full depth are poured once per feature, with human approval
