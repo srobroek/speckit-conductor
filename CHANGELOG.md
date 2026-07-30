@@ -1,5 +1,14 @@
 # Changelog
 
+## [5.1.0](https://github.com/srobroek/speckit-conductor/compare/v5.0.0...v5.1.0) (2026-07-30)
+
+
+### Features
+
+* add lean and basic profiles plus four sub-process formulas ([#11](https://github.com/srobroek/speckit-conductor/issues/11)) ([b01ef02](https://github.com/srobroek/speckit-conductor/commit/b01ef02a0904ca958a71c48274e4153872056dc7))
+* dispatch per-command guidance when a SpecKit command fires ([#12](https://github.com/srobroek/speckit-conductor/issues/12)) ([45aac25](https://github.com/srobroek/speckit-conductor/commit/45aac25d70552d5c8dac93ed1c51cccfe5c50984))
+* gate autonomy at runtime, and make the agent-assign chain optional ([#9](https://github.com/srobroek/speckit-conductor/issues/9)) ([b11bed2](https://github.com/srobroek/speckit-conductor/commit/b11bed206bc9e75be7cf50f45daf0db1b82ef7de))
+
 ## [5.0.0](https://github.com/srobroek/speckit-conductor/compare/v4.0.0...v5.0.0) (2026-07-30)
 
 
