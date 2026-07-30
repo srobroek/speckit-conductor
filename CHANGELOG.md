@@ -1,5 +1,16 @@
 # Changelog
 
+## [5.0.0](https://github.com/srobroek/speckit-conductor/compare/v4.0.0...v5.0.0) (2026-07-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* close the defects the first end-to-end run found ([#7](https://github.com/srobroek/speckit-conductor/issues/7))
+
+### Bug Fixes
+
+* close the defects the first end-to-end run found ([#7](https://github.com/srobroek/speckit-conductor/issues/7)) ([e3517f3](https://github.com/srobroek/speckit-conductor/commit/e3517f38d47bdce4cda5cb1369c5ee21426871f7))
+
 ## [4.0.0](https://github.com/srobroek/speckit-conductor/compare/v3.0.0...v4.0.0) (2026-07-30)
 
 
