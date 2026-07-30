@@ -137,6 +137,22 @@ def test_the_denial_carries_the_replacement_workflow(work: Path, bd_active: dict
     assert "bd" in reason
 
 
+def test_the_denial_answers_the_require_tasks_deadlock(work: Path, bd_active: dict[str, str]) -> None:
+    """The deny lands exactly where an agent is stuck between two rules, so it must
+    resolve the conflict rather than restate one side of it.
+
+    13 installed skills call `check-prerequisites.sh --require-tasks`, which demands
+    the file this guard forbids -- and it prints its error while EXITING 0, so an
+    automated caller reads failure as success. Two autonomous runs each hit this and
+    had to infer the way out on their own; nothing in the package said it. An agent
+    that instead "satisfies" the check by creating tasks.md defeats the guard.
+    """
+    _, output = run_guard(write_payload(work, "Write", str(work / "specs/001-feature/tasks.md")), bd_active)
+    reason = json.loads(output)["hookSpecificOutput"]["permissionDecisionReason"]
+    assert "--require-tasks" in reason, "the deny does not name the check that sent the agent here"
+    assert "bd list --spec" in reason, "no alternative source of task state is given"
+
+
 # --- what must pass ---------------------------------------------------------
 
 

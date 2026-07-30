@@ -46,16 +46,34 @@ def _as_str(value: object) -> str:
     return value if isinstance(value, str) else ""
 
 
+def normalize(tail: str) -> str:
+    """Reduce a command tail to the dotted form the instruction table is keyed by.
+
+    BOTH SEPARATORS ARE REAL. spec-kit 0.13.4 installs its commands hyphenated --
+    `/speckit-specify`, and `/speckit-git-commit` for a subcommand -- while its own
+    skill bodies refer to them in prose with dots (`speckit.git.commit`). Earlier
+    versions used the dotted form as the invocation. Verified against a live
+    `specify init --integration claude`: the deployed skill is named
+    `speckit-specify`, and no dotted command exists on disk.
+
+    Matching only one separator makes this hook a silent no-op on the very runtime it
+    ships for, so both normalize to dots. No instruction key contains a hyphen, so
+    the collapse cannot mis-route: `speckit-review-code` becomes `review.code`, which
+    is deliberately absent from the table and stays silent either way.
+    """
+    return tail.strip("./-").replace("-", ".")
+
+
 def parse_slash(text: str) -> str:
-    """Pull `speckit.x.y` out of prompt text containing `/speckit.x.y`."""
+    """Pull the command out of prompt text containing `/speckit-x-y` or `/speckit.x.y`."""
     import re
 
-    m = re.search(r"/speckit\.([a-z][a-z0-9.-]*)", text)
-    return m.group(1).rstrip(".") if m else ""
+    m = re.search(r"/speckit[.-]([a-z][a-z0-9.-]*)", text)
+    return normalize(m.group(1)) if m else ""
 
 
 def resolve_command(event: str, payload: dict) -> str:
-    """Extract the SpecKit command, minus its `speckit.` prefix.
+    """Extract the SpecKit command, minus its `speckit` prefix.
 
     Each event carries it somewhere different. These field names are verified against
     the retired dispatcher that shipped in this repository's predecessor package:
@@ -66,7 +84,10 @@ def resolve_command(event: str, payload: dict) -> str:
         # An expansion may arrive with or without the leading slash.
         if raw.startswith("/"):
             return parse_slash(raw)
-        return raw[len("speckit.") :] if raw.startswith("speckit.") else ""
+        for prefix in ("speckit.", "speckit-"):
+            if raw.startswith(prefix):
+                return normalize(raw[len(prefix) :])
+        return ""
 
     if event == "UserPromptSubmit":
         return parse_slash(_as_str(payload.get("prompt")))
@@ -75,11 +96,11 @@ def resolve_command(event: str, payload: dict) -> str:
         tool_input = payload.get("tool_input")
         if not isinstance(tool_input, dict):
             return ""
-        # A Claude Skill call names the skill; the deployed skills are `speckit-x-y`,
-        # so the separator differs from the command form.
+        # A Claude Skill call names the skill; the deployed skills are `speckit-x-y`.
         skill = _as_str(tool_input.get("skill"))
-        if skill.startswith("speckit-"):
-            return skill[len("speckit-") :].replace("-", ".")
+        for prefix in ("speckit-", "speckit."):
+            if skill.startswith(prefix):
+                return normalize(skill[len(prefix) :])
         # Codex may carry no skill field at all, so fall back to the prompt.
         return parse_slash(_as_str(tool_input.get("prompt")))
 

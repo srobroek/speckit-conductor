@@ -79,6 +79,58 @@ def test_pretooluse_falls_back_to_prompt_for_codex():
     assert "learnings are in the beads" in context(r)
 
 
+# --- the separator spec-kit actually installs --------------------------------
+# Every case below was captured from a live `specify init --integration claude`
+# (spec-kit 0.13.4), which deploys the skill as `speckit-specify` and documents
+# `/speckit-git-commit`. Matching dots only made this hook a silent no-op on the
+# runtime it ships for, so the real forms are pinned by name.
+
+
+@pytest.mark.parametrize(
+    ("payload", "expect"),
+    [
+        (
+            {"hook_event_name": "UserPromptSubmit", "prompt": "/speckit-specify add multiply"},
+            "Pour a molecule",
+        ),
+        (
+            {"hook_event_name": "UserPromptExpansion", "command_name": "speckit-specify"},
+            "Pour a molecule",
+        ),
+        (
+            {"hook_event_name": "UserPromptExpansion", "command_name": "/speckit-cleanup"},
+            "closeout sweep",
+        ),
+        (
+            {"hook_event_name": "UserPromptSubmit", "prompt": "run /speckit-retro-run now"},
+            "learnings are in the beads",
+        ),
+        (
+            {"hook_event_name": "PreToolUse", "tool_input": {"prompt": "/speckit-review-run"}},
+            "route by kind",
+        ),
+    ],
+)
+def test_the_hyphenated_form_spec_kit_installs_is_recognised(payload, expect):
+    _, r = run(payload)
+    assert expect in context(r), f"silent on the real command form: {payload}"
+
+
+def test_hyphen_and_dot_forms_resolve_identically():
+    """Both separators are in the wild; neither may be the one that no-ops."""
+    pairs = (("speckit-cleanup", "speckit.cleanup"), ("speckit-retro-run", "speckit.retro.run"))
+    for hyphen, dot in pairs:
+        _, a = run({"hook_event_name": "UserPromptSubmit", "prompt": f"/{hyphen}"})
+        _, b = run({"hook_event_name": "UserPromptSubmit", "prompt": f"/{dot}"})
+        assert context(a) == context(b) != "", f"{hyphen} and {dot} disagree"
+
+
+def test_the_deny_survives_the_hyphenated_form():
+    """The one refusal is worthless if the real command name slips past it."""
+    _, r = run({"hook_event_name": "UserPromptSubmit", "prompt": "/speckit-taskstoissues"})
+    assert context(r).startswith("DO NOT RUN THIS COMMAND")
+
+
 # --- the one deny ------------------------------------------------------------
 
 

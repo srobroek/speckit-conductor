@@ -146,7 +146,14 @@ CATALOG_URL="https://raw.githubusercontent.com/github/spec-kit/main/extensions/c
 # bugfix + refine back the mol-speckit-bugfix and mol-speckit-refine sub-process
 # formulas, which are bonded onto a running feature molecule rather than being
 # steps in any profile's spine.
+# agent-context is one of the four OFFICIAL extensions and it owns the
+# `<!-- SPECKIT START -->` / `<!-- SPECKIT END -->` markers in CLAUDE.md that
+# speckit-plan's Phase 1 tells agents to update. Without it those markers never
+# exist, so that instruction is unactionable -- two autonomous runs each reached
+# it, found nothing to edit, and skipped the step. Verified absent from a scaffold
+# built without it.
 EXTENSIONS=(
+  agent-context
   agent-assign
   bugfix cleanup critique
   fix-findings iterate qa
@@ -351,6 +358,27 @@ for target in "${RENDER_LIST[@]}"; do
     current_integration="$target"
   fi
 done
+
+# Restore the execute bit on the scaffold's helper scripts.
+#
+# `specify integration switch` (spec-kit 0.15.0) rewrites .specify/scripts/ and lands
+# them 644 -- it prints "Updated execute permissions on 5 script(s)" while actually
+# CLEARING the bit. Reproduced in a pristine `specify init` with none of this package
+# installed: 755 before the switch, 644 after, deterministically, on all five scripts.
+# 0.13.4 did not do this.
+#
+# It matters because the command prompts invoke these scripts directly
+# (`.specify/scripts/bash/setup-plan.sh --json`), so every one of them fails with
+# permission denied. An autonomous run hits this at `plan`, the third phase, and the
+# best case is an agent that works around it by hand-copying templates -- silently
+# skipping whatever else the script does.
+#
+# We re-register on every setup run, so repair here rather than depending on a fix
+# landing upstream. Harmless if the bit is already set.
+if [ -d .specify/scripts ]; then
+  find .specify/scripts -type f -name '*.sh' -exec chmod +x {} + 2>/dev/null || true
+  echo "    restored execute bit on .specify/scripts/**/*.sh (works around spec-kit 0.15.0)"
+fi
 
 # Remove any legacy `specify workflow` definitions from earlier package versions
 # (no numbered step -- this is cleanup, not an install). The beads formula
