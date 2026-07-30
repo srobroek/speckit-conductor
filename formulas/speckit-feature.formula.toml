@@ -20,11 +20,32 @@ type = "workflow"
 required = true
 pattern = "^[0-9]{3}-[a-z0-9-]+$"
 
+# Human approval, or explicit permission to proceed without one.
+#
+# Default "no" keeps the three approvals in the DAG, which is what an interactive run
+# wants. Pour with --var autonomous=yes ONLY when the operator has said the run may
+# proceed unattended; the gate steps are then filtered out and the DAG runs to
+# completion.
+#
+# This exists because the alternative is a dead molecule. `bd gate check` does not
+# see a human gate (it reports "Checked 0 gates"), so an unattended run reaches
+# clarify-approval, finds `bd ready` empty, and stalls there permanently -- eight
+# steps before implement. The first user of this package hit exactly that.
+#
+# Skipping a gate does not mean skipping its judgement. Each gate step's description
+# names what a human would have been asked, and the autonomous path requires
+# recording that as findings on the step's bead before closing it. An unattended run
+# that produces no note where a gate stood has not satisfied the gate, it has
+# discarded it.
+[vars.autonomous]
+required = false
+default = "no"
+
 [[steps]]
 id = "specify"
 title = "specify {{feature}}"
 type = "task"
-description = "Run /speckit.specify to create specs/{{feature}}/spec.md."
+description = "Run /speckit.specify to create specs/{{feature}}/spec.md. PRECONDITION: the /speckit.* skills come from spec-kit and its extensions, which this package does not ship -- run the speckit-setup skill first. Without it 14 of these 26 steps name a skill that does not exist, and the mandatory agent-assign chain (assign -> validate -> execute) is unreachable."
 
 [steps.metadata]
 skill_hints = "speckit.specify"
@@ -47,6 +68,7 @@ type = "task"
 needs = ["clarify"]
 description = "Human sign-off on the clarified spec. Close the gate only after the user approves interactively. Nudge a stalled gate with a ping wisp; only bd gate resolve closes the gate."
 
+condition = "{{autonomous}} == no"
 [steps.gate]
 type = "human"
 
@@ -54,7 +76,7 @@ type = "human"
 id = "plan"
 title = "plan {{feature}}"
 type = "task"
-needs = ["clarify-approval"]
+needs = ["clarify", "clarify-approval"]
 description = "Run /speckit.plan to produce plan.md and design artifacts."
 
 [steps.metadata]
@@ -106,7 +128,7 @@ id = "analyze"
 title = "analyze {{feature}}"
 type = "task"
 needs = ["critique", "security-review"]
-description = "Run /speckit.analyze (interactive cross-artifact risk analysis). Task state comes from bd list --spec-id {{feature}}, not tasks.md. Carry unresolved findings on escalation wisps and encode the resolution into spec.md or plan.md before burning them."
+description = "Run /speckit.analyze (interactive cross-artifact risk analysis). Task state comes from bd list --spec {{feature}}, not tasks.md. Carry unresolved findings on escalation wisps and encode the resolution into spec.md or plan.md before burning them."
 
 [steps.metadata]
 skill_hints = "speckit.analyze"
@@ -119,6 +141,7 @@ type = "task"
 needs = ["analyze"]
 description = "Human sign-off on analysis findings. Close the gate only after the user approves interactively. Nudge a stalled gate with a ping wisp; only bd gate resolve closes the gate."
 
+condition = "{{autonomous}} == no"
 [steps.gate]
 type = "human"
 
@@ -126,7 +149,7 @@ type = "human"
 id = "assign"
 title = "agent assign {{feature}}"
 type = "task"
-needs = ["analyze-approval"]
+needs = ["analyze", "analyze-approval"]
 description = "Run /speckit.agent-assign.assign to map implementation task beads to agents."
 
 [steps.metadata]
@@ -185,6 +208,7 @@ type = "task"
 needs = ["verify"]
 description = "Final human sign-off on the verification reports. Close the gate only after the user approves interactively. Nudge a stalled gate with a ping wisp; only bd gate resolve closes the gate."
 
+condition = "{{autonomous}} == no"
 [steps.gate]
 type = "human"
 
@@ -192,7 +216,7 @@ type = "human"
 id = "review"
 title = "review {{feature}}"
 type = "task"
-needs = ["verify-signoff"]
+needs = ["verify", "verify-signoff"]
 description = "Run /speckit.review.run (full review cycle); route findings through fix-findings. Multi-dimension or cross-model review: create one review-wisp shell per dimension plus a blocks edge from the downstream step to each, before spawning any reviewer."
 
 [steps.metadata]

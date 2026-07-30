@@ -61,6 +61,47 @@ IMPLEMENT_ADVICE = (
 )
 
 
+def writes_tasks_md(command: str) -> bool:
+    """Whether a shell command writes to a specs/*/tasks.md path.
+
+    Conservative by construction: it answers yes only on a recognised write
+    shape, so an unrecognised command falls through to the advisory rather than
+    to a wrong deny. Reads stay allowed because a brownfield migration has to
+    read the legacy file.
+
+    Recognised writes, each verified against the shapes the first user of this
+    package used to bypass the Write/Edit deny:
+
+      >  >>          redirect, including `1>` and `&>`
+      tee            with or without -a
+      cp mv          when the path is the destination
+      sed -i         in-place edit
+      truncate       explicit size change
+      python -c      any interpreter opening the path for writing
+
+    `dd of=` and `install` are included because they are ordinary file writers,
+    not because anyone reached for them.
+    """
+    import re
+
+    # A redirect anywhere before the path. `[0-9]*&?>` covers `>`, `>>`, `1>`,
+    # `2>>`, `&>`; the path may be quoted, so quotes are permitted between.
+    if re.search(r"[0-9]*&?>>?\s*['\"]?[^|;&]*specs/[^|;&]*/tasks\.md", command, re.DOTALL):
+        return True
+
+    # A writing utility naming the path as an argument. The path may appear
+    # anywhere after the utility, since flags vary.
+    writers = (
+        r"\btee\b", r"\bsed\b\s+[^|;&]*-i", r"\btruncate\b", r"\bdd\b[^|;&]*\bof=",
+        r"\binstall\b", r"\bcp\b", r"\bmv\b", r"\bpython3?\b[^|;&]*-c",
+        r"\bperl\b[^|;&]*-[a-z]*e", r"\bawk\b[^|;&]*>", r"\btouch\b",
+    )
+    for w in writers:
+        if re.search(w + r"[^|;&]*specs/[^|;&]*/tasks\.md", command, re.DOTALL):
+            return True
+    return False
+
+
 def is_tasks_md(path: str) -> bool:
     """Whether `path` is a SpecKit tasks file: specs/<feature>/tasks.md at any
     depth, relative or absolute."""
@@ -213,16 +254,26 @@ def main() -> int:
         return 0
 
     if tool_name == "Bash":
-        # Advisory only (user decision): a Bash command touching a
-        # specs/*/tasks.md path may be legitimate (migration reads, greps), so
-        # never deny -- just remind where task state lives. Plain substring
-        # match on the path pattern; no redirect parsing.
+        # A Bash command touching specs/*/tasks.md is legitimate when it READS
+        # (migration reads, greps, cat) and is the documented bypass when it
+        # WRITES. The first user of this package found that: `echo x >
+        # specs/001/tasks.md` sailed past the Write/Edit deny with only a note,
+        # so the guard's own README claim to deny "every Write/Edit" held while
+        # the cheapest possible write did not go through Write at all.
+        #
+        # So: deny a write, advise a read. Detecting the write is the whole job,
+        # and it is done by looking for a redirect or a writing utility aimed at
+        # the path rather than by parsing the shell -- an unparsable command
+        # falls through to the advisory, never to a false deny.
         import re
 
         # Mirrors the shell glob `*specs/*/tasks.md*`: "specs/" must precede
         # "/tasks.md" in the string, not merely both appear anywhere.
         if re.search(r"specs/.*/tasks\.md", data["command"], re.DOTALL):
             if not beads_active(cwd):
+                return 0
+            if writes_tasks_md(data["command"]):
+                deny()
                 return 0
             advise("PreToolUse", BASH_ADVICE)
         return 0

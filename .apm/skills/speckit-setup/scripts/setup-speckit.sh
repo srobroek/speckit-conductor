@@ -385,8 +385,9 @@ if command -v bd >/dev/null 2>&1; then
   FORMULA_SRC=""
   for cand in \
     "$HOME/.beads/formulas/$FORMULA_NAME" \
-    "$HOME/.apm/apm_modules/srobroek/agentic-packages/packages/speckit/formulas/$FORMULA_NAME" \
-    "$HOME/.claude/plugins/agentic-packages-speckit/formulas/$FORMULA_NAME" \
+    "./apm_modules/srobroek/speckit-conductor/formulas/$FORMULA_NAME" \
+    "$HOME/.apm/apm_modules/srobroek/speckit-conductor/formulas/$FORMULA_NAME" \
+    "$HOME/.claude/plugins/speckit-conductor/formulas/$FORMULA_NAME" \
     "$SCRIPT_DIR/../../../../formulas/$FORMULA_NAME"; do
     if [ -f "$cand" ]; then FORMULA_SRC="$cand"; break; fi
   done
