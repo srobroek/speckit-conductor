@@ -166,6 +166,48 @@ def test_bd_absent_allows(work: Path, bd_absent: dict[str, str]) -> None:
     assert decision(output) == "allow"
 
 
+# --- a Bash WRITE is denied, a Bash read is advised --------------------------
+#
+# The first user of this package bypassed the Write/Edit deny with `echo x >
+# specs/001/tasks.md`, which reached the Bash branch and got only a note. These
+# cases pin both halves: a write denies, a read still passes.
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "echo T001 > specs/001-feature/tasks.md",
+        "cat >> specs/001-feature/tasks.md <<'EOF'",
+        "echo x | tee specs/001-feature/tasks.md",
+        "sed -i s/a/b/ specs/001-feature/tasks.md",
+        "cp draft.md specs/001-feature/tasks.md",
+        "touch specs/001-feature/tasks.md",
+        "python3 -c \"open('specs/001-feature/tasks.md','w')\"",
+    ],
+)
+def test_a_bash_write_to_tasks_md_is_denied(
+    work: Path, bd_active: dict[str, str], command: str
+) -> None:
+    _, output = run_guard(bash_payload(work, command), bd_active)
+    assert decision(output) == "deny", f"a shell write must not slip past: {command}"
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "cat specs/001-feature/tasks.md",
+        "grep -n T001 specs/001-feature/tasks.md",
+        "wc -l < specs/001-feature/tasks.md",
+    ],
+)
+def test_a_bash_read_of_tasks_md_stays_allowed(
+    work: Path, bd_active: dict[str, str], command: str
+) -> None:
+    """Brownfield migration has to read the legacy file."""
+    _, output = run_guard(bash_payload(work, command), bd_active)
+    assert decision(output) == "allow", f"a read must not be denied: {command}"
+
+
 # --- the Bash advisory is never a block -------------------------------------
 
 

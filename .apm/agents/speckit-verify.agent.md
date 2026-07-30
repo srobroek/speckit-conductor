@@ -6,7 +6,12 @@ x-lint:
   reason: "the dual-mode gate agent keeps each standalone verification contract explicit"
 model: opus
 effort: high
-permissionMode: plan
+# NOT plan mode. This agent's output contract makes writing
+# $FEATURE_DIR/verify-report.md mandatory, and the formula's verify steps name that
+# file as what the step produces; plan mode cannot write, so the agent could not
+# satisfy the contract it declares. Its boundaries keep it read-only over everything
+# else: it may write its own report and nothing more.
+permissionMode: acceptEdits
 memory: user
 ---
 

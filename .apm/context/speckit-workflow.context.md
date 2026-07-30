@@ -44,7 +44,7 @@ MUST When /speckit.tasks instructs writing specs/*/tasks.md, create beads
   `bd create -f <tmp>.md` OUTSIDE specs/.
 MUST Use `discovered-from` deps for follow-up work found mid-task.
 MUST When a later phase (analyze, verify-tasks, converge) instructs reading
-  tasks.md for task state, query beads instead: `bd query "spec_id=<NNN-slug>"
+  tasks.md for task state, query beads instead: `bd query 'spec_id="<NNN-slug>"'
   --json`, `bd ready`, or `bd swarm status <root-id>`.
 MUST Keep the implement parent open until every implementation child is closed.
   `bd close` on a parent with open children succeeds silently.
@@ -57,6 +57,15 @@ DEFAULT Brownfield: an existing tasks.md gets a one-time read -> `bd create`
 GATES
 MUST Resolve a human gate with `bd gate resolve <gate-id>` then `bd close
   <step-id> --reason`, only after the user approves interactively.
+NOT Wait on a human gate in an unattended run. `bd gate check` does not see a human
+  gate -- it reports `Checked 0 gates` -- so the molecule stalls with `bd ready`
+  empty and nothing can advance it. Pour with `--var autonomous=yes` instead, which
+  filters the three gate steps out.
+MUST When a gate was skipped that way, record on the preceding step's bead what a
+  reviewer would have been asked and why the run proceeded, before closing it. A
+  skipped gate that leaves no note has been discarded rather than satisfied.
+NOT `bd close <gate-id>` to resolve a gate, which `bd gate list` suggests. The gate
+  and its step are separate beads; closing the gate bead leaves the step blocked.
 DEFAULT Optional steps (critique, security-review): close `--reason skipped`
   once the user opts out.
 DEFAULT Merge step with an open PR: `bd gate create --type=gh:pr
@@ -72,7 +81,9 @@ MUST Work steps via `bd update <id> --claim` -> do the work ->
 
 WISPS -- PHASE CHATTER OFF THE STEP THREAD
 Wisp roles, TTLs, and the promotion rule: [orchestration
-doctrine](../../../beads/.apm/context/beads.orchestration-doctrine.context.md).
+doctrine](https://github.com/srobroek/agentic-packages/blob/main/packages/beads/.apm/context/beads.orchestration-doctrine.context.md),
+  installed locally at
+  `apm_modules/srobroek/agentic-packages/packages/beads/.apm/context/beads.orchestration-doctrine.context.md`.
 MUST Keep the step thread to outcome, artifact path, and close reason; route
   progress and retries to a `[wisp:worklog]`, one clarify/analyze question per
   escalation wisp (answer lands in spec.md or plan.md before the burn), gate
