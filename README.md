@@ -25,18 +25,14 @@ dependencies:
       targets: [claude, codex]
 ```
 
-Then, before pouring anything:
+Then, before pouring anything, invoke the `speckit-setup` skill ("set up SpecKit"). It
+installs spec-kit, its extensions, and all seven formulas into `.beads/formulas/`.
 
-```bash
-# Installs spec-kit, its extensions, and the formula into .beads/formulas/
-```
-
-Invoke the `speckit-setup` skill ("set up SpecKit"). **This is a precondition, not a
-convenience.** 14 of the formula's 26 steps invoke a `/speckit.*` skill, and those
-come from spec-kit and its community extensions rather than from this package. The
-mandatory implementation path (`assign` -> `validate` -> `execute`) is the
-`agent-assign` extension. Pour without running setup and you get 30 beads whose steps
-name skills that do not exist.
+**This is a precondition, not a convenience.** 14 of `speckit-feature`'s 26 steps invoke
+a `/speckit.*` skill, and those come from spec-kit and its community extensions rather
+than from this package. Its implementation path (`assign` -> `validate` -> `execute`) is
+the `agent-assign` extension. Pour without running setup and you get 30 beads whose
+steps name skills that do not exist.
 
 Requires the `bd` CLI (`gastownhall/beads` >= 1.1.0) and `python3` on `PATH`. The
 guard and the steering are inert in a repository without `.beads/`, so installing
@@ -54,7 +50,8 @@ packages and wires two agents and four skills on each.
 
 | Piece | Does |
 |---|---|
-| `formulas/speckit-feature.formula.toml` | 26 steps, 3 human gates; the poured molecule is the phase DAG |
+| three depth profiles under `formulas/` | `speckit-basic` (10 steps), `speckit-lean` (18), `speckit-feature` (26); the poured molecule is the phase DAG |
+| four sub-process formulas under `formulas/` | `mol-speckit-iterate`, `mol-speckit-fix-findings`, `mol-speckit-bugfix`, `mol-speckit-refine`; bonded onto a running molecule |
 | `scripts/speckit-tasks-guard.py` | denies a write to `specs/*/tasks.md` in a beads repo, through Write, Edit, `apply_patch`, or a shell redirect; reads stay allowed for migration |
 | `scripts/speckit-pr-title.py` | derives a PR title from the spec |
 | `speckit-sync` agent | audits artifacts in two scopes: `drift` (spec versus code) and `conflicts` (spec versus spec) |
@@ -76,8 +73,9 @@ drifted generated file is.
 
 ## Human gates, and running without one
 
-Three steps carry a human approval gate: `clarify-approval`, `analyze-approval`, and
-`verify-signoff`. An interactive run resolves each with `bd gate resolve <gate-id>`.
+Every profile carries the same three human approval gates: `clarify-approval`,
+`analyze-approval`, and `verify-signoff`. An interactive run resolves each with
+`bd gate resolve <gate-id>`.
 
 An unattended run cannot. `bd gate check` does not see a human gate at all -- it
 reports `Checked 0 gates` -- so a molecule poured with gates and left to an agent
@@ -123,12 +121,71 @@ named a skill that does not exist, so the molecule reflects what can actually ru
 Work the task beads under the implement step directly. `verify-tasks` anchors on
 `analyze`, so the verification half of the DAG survives either way.
 
-| `autonomous` | `agent_assign` | steps |
+`speckit-basic` has no such chain. Its `implement` step works the task beads under it
+directly, on every pour, so `agent_assign` conditions no step there.
+
+## Depth profiles
+
+`speckit-feature` is the default. Each profile is a standalone formula taking `feature`,
+`autonomous`, and `agent_assign` with the same defaults, so the four var combinations
+work on every one.
+
+| Profile | Steps | Phases |
 |---|---|---|
-| `no` (default) | `yes` (default) | 30 |
-| `yes` | `yes` | 24 |
-| `no` | `no` | 27 |
-| `yes` | `no` | 21 |
+| `speckit-basic` | 10 | specify, clarify, plan, tasks, analyze, implement, plus the three gates |
+| `speckit-lean` | 18 | basic plus critique, the agent-assign chain, verify-tasks, verify, review, qa, docs-update |
+| `speckit-feature` | 26 | lean plus checklist, security-review, code-review, security-review-post, cleanup, sync-drift, sync-conflicts, retro |
+
+```bash
+bd mol pour speckit-lean --var feature=001-slug --var autonomous=yes
+```
+
+Beads poured, counting the gate bead each surviving gate step adds:
+
+| Profile | `autonomous`=`no`, `agent_assign`=`yes` | `no`, `no` | `yes`, `yes` | `yes`, `no` |
+|---|---|---|---|---|
+| `speckit-feature` | 30 | 27 | 24 | 21 |
+| `speckit-lean` | 22 | 19 | 16 | 13 |
+| `speckit-basic` | 14 | 14 | 8 | 8 |
+
+Every `/speckit.*` command in `speckit-basic` ships with spec-kit itself, so that
+profile needs no community extension. `speckit-lean` needs `critique`, `agent-assign`,
+`review`, and `qa`. `speckit-feature` needs those plus `cleanup`, `retro`, and
+`security-review`.
+
+## Sub-process formulas
+
+These formulas run against a molecule already in flight. Bond one onto the step that
+found the work:
+
+```bash
+bd mol bond mol-speckit-fix-findings <step-id> --var feature=001-slug
+```
+
+| Formula | Steps | Requires extension | For |
+|---|---|---|---|
+| `mol-speckit-iterate` | 2 | `iterate` | the approved approach changed |
+| `mol-speckit-fix-findings` | 2 | `fix-findings` | review, QA, or security found actionable defects |
+| `mol-speckit-bugfix` | 3 | `bugfix` | a defect in implemented code, traced to its spec artifacts |
+| `mol-speckit-refine` | 4 | `refine` | spec.md text changed and plan and tasks must follow |
+
+The bond target sets when the sub-molecule can run:
+
+| Target | Edge onto the target | First step becomes ready |
+|---|---|---|
+| the feature root | `blocks` | after the whole feature closes |
+| a step | `parent-child` | as soon as that step is ready |
+
+Keep the `mol-` filename prefix. `bd` resolves a formula by filename stem, and
+`bd mol bond` resolves a formula name only when it is prefixed:
+`bd mol bond speckit-iterate <id>` reports `not found (not an issue ID or formula
+name)`.
+
+Neither loop is expressed as `needs` edges, because a cycle is rejected at pour with
+`adding dependency would create a cycle`. `mol-speckit-bugfix`'s verify step sends work
+back by reopening the patch bead (`bd update <id> --status open`).
+`mol-speckit-fix-findings` relies on the extension's own 5-iteration cap; bond a second
+copy for a second pass.
 
 ## Task state
 
@@ -154,13 +211,6 @@ with no error at pour.
 
 `optional = true` is inert; `condition` is the working key, and it reads pour-time
 variables rather than filesystem state.
-
-## Roadmap
-
-[`docs/BUILD-PLAN.md`](docs/BUILD-PLAN.md) specifies the work still to come: three
-standalone profiles (`minimal`, `lean`, `full`) replacing the single 26-step
-formula, bonded loop formulas for the review and iterate cycles, a standalone
-`bugfix-spec` formula, and the authoring docs for adding an extension or a formula.
 
 ## The name
 
