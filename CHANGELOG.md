@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/srobroek/speckit-conductor/compare/v1.0.0...v1.1.0) (2026-07-30)
+
+
+### Features
+
+* **ci:** prove the release path tags without hand intervention ([ac8478f](https://github.com/srobroek/speckit-conductor/commit/ac8478fc034a679e8bae2ce765afd2fa0ea2bd64))
+
+
+### Bug Fixes
+
+* **release:** author the release PR with an App token so the tag actually ships ([c462edc](https://github.com/srobroek/speckit-conductor/commit/c462edc3ea4d94dce29480820d45395bc147f268))
+
 ## 1.0.0 (2026-07-30)
 
 
