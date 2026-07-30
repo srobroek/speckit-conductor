@@ -37,6 +37,41 @@ jobs:
             echo "no tests yet"
           fi
 
+  # v1.0.0 and v1.1.0 both shipped a package `apm install` REJECTED: APM requires a
+  # .apm/ directory and neither release had one. The version resolved and the install
+  # failed, which is the worst shape for a consumer. This gate is the install itself,
+  # so the release cannot regress that way again.
+  installable:
+    name: apm install
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+        with:
+          python-version: "3.13"
+          enable-cache: false
+
+      # apm-cli is the Microsoft-published PyPI package (MIT), the same one mise
+      # installs here as pipx-apm-cli. It is not an npm package.
+      - name: Install this package from the working tree
+        run: |
+          uv tool install apm-cli
+          mkdir -p /tmp/probe && cd /tmp/probe
+          git init -q .
+          cat > apm.yml <<'YAML'
+          name: install-probe
+          version: 0.1.0
+          description: Probe that the package under test is a valid APM package.
+          author: ci
+          YAML
+          # Local path install: proves the package validates without waiting for a tag.
+          apm install "$GITHUB_WORKSPACE" --target claude
+
   formulas:
     name: bd cook
     runs-on: ubuntu-latest
