@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.0.0](https://github.com/srobroek/speckit-conductor/compare/v2.0.0...v3.0.0) (2026-07-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* receive the merged SpecKit workflow from agentic-packages
+
+### Features
+
+* receive the merged SpecKit workflow from agentic-packages ([995fb77](https://github.com/srobroek/speckit-conductor/commit/995fb774f1d6dba79a50f109903ca64de29d1661))
+
+
+### Bug Fixes
+
+* **ci:** init a beads workspace before cooking formulas ([5a2edee](https://github.com/srobroek/speckit-conductor/commit/5a2edeeb0b289d4c1e80bfc7f9b8aa7d121c9086))
+
 ## [2.0.0](https://github.com/srobroek/speckit-conductor/compare/v1.1.0...v2.0.0) (2026-07-30)
 
 
