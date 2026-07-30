@@ -1,46 +1,92 @@
 # speckit-conductor
 
-SpecKit workflow orchestration on [beads](https://github.com/gastownhall/beads):
-phase-DAG formulas, human approval gates, and bonded loops for spec-driven
-development.
+The beads-native SpecKit workflow: the `speckit-feature` formula whose poured
+molecule *is* the phase DAG, human approval gates as real DAG nodes, four SpecKit
+agents, the setup and bugfix skills, and a guard that keeps task state in beads
+rather than `tasks.md`.
 
-## State at HEAD
+Extracted from [`srobroek/agentic-packages`](https://github.com/srobroek/agentic-packages),
+where it lived as three packages (`speckit`, `speckit-beads`, `steering-speckit`)
+before they were merged into one.
 
-A scaffold: `apm.yml`, the release machinery, and a build plan. No formula, skill,
-or script has been written yet. [`docs/BUILD-PLAN.md`](docs/BUILD-PLAN.md) specifies
-the work.
+## Install
 
-The SpecKit workflow layer lives in `srobroek/agentic-packages` as three packages:
-`speckit`, `speckit-beads`, and `steering-speckit`. Those merge into one package
-there, and this repository receives the merged result. Extraction waits for the
-merge and for its dependents to migrate, because a package that is renamed and
-relocated in one step breaks `apm install` at resolution.
+```bash
+apm install srobroek/speckit-conductor --target claude,codex
+```
 
-## What it will hold
+Or as a dependency:
 
-Phase-DAG formulas at three depths, `minimal`, `lean`, and `full`, each poured once
-per feature. Each declares its own step graph. A formula that composes from a parent
-drops the parent's `[steps.gate]` on any step it redeclares, silently, and this
-workflow carries three human approval gates.
+```yaml
+dependencies:
+  apm:
+    - git: srobroek/speckit-conductor
+      ref: '>=2.0.0 <3.0.0'
+      targets: [claude, codex]
+```
 
-Bonded loop formulas for `fix-findings`, `iterate`, `bugfix`, and `refine`, attached
-to a running molecule with `bd mol bond`. Their iteration count is unknown when the
-formula is cooked, which a fixed step list cannot express.
+Requires the `bd` CLI (`gastownhall/beads` >= 1.1.0) and `python3` on `PATH`. The
+guard and the steering are inert in a repository without `.beads/`, so installing
+it costs nothing until beads is initialised.
 
-A `bugfix-spec` formula that creates its own spec directory, for a defect found with
-no active spec.
+## What arrives
 
-Routes reached by judgement rather than as steps: `converge`, `tinyspec`,
-`reconcile`.
+| Piece | Does |
+|---|---|
+| `formulas/speckit-feature.formula.toml` | 26 steps, 3 human gates; the poured molecule is the phase DAG |
+| `scripts/speckit-tasks-guard.py` | denies every Write/Edit to `specs/*/tasks.md` in a beads repo |
+| `scripts/validate-dag.py` | checks the formula's shape |
+| `scripts/speckit-pr-title.py` | derives a PR title from the spec |
+| 4 agents | `speckit-implement-task`, `speckit-research`, `speckit-sync`, `speckit-verify` |
+| `speckit-setup` skill | installs spec-kit, its extensions, and the formula into `.beads/formulas/` |
+| `speckit-bugfix` skill | the bugfix route |
+| steering | one spec dir to one molecule root, the routing table, and why `tasks.md` is never authored |
 
-A guard that keeps task state in beads rather than `tasks.md`.
+## Dependencies
 
-Authoring docs, so a consumer can add an extension or a formula. The community
-catalog holds 143 extensions and grows; the traps that make a formula fail silently
-are documented with their reproductions.
+Two, both resolved from published tags in the monorepo:
+
+- `beads` — the workflow engine
+- `adr-as-beads` — architecture decisions as `decision` beads, rendered to `docs/adr/`
+
+They are referenced rather than vendored. A copy across a repository boundary has
+no checker behind it, and a drifted guard script is not recoverable the way a
+drifted generated file is.
+
+## Task state
+
+`specs/*/tasks.md` is read-only legacy. Implementation tasks are children of the
+molecule's implement step:
+
+```bash
+bd create "T00N <title>" --parent <implement-step-id> --spec-id <NNN-slug>
+```
+
+Reads of an existing `tasks.md` stay allowed, so a brownfield repository can
+migrate.
+
+## Diagnosing a formula
+
+Use `bd cook <name>`. `bd mol pour` reports every formula error as `not found as
+formula or proto ID` while naming a file that exists, so a broken formula is
+indistinguishable from a missing one.
+
+Every step's `needs` must name at least one unconditional step. A step whose whole
+`needs` list is filtered keeps only its parent edge and becomes immediately ready,
+with no error at pour.
+
+`optional = true` is inert; `condition` is the working key, and it reads pour-time
+variables rather than filesystem state.
+
+## Roadmap
+
+[`docs/BUILD-PLAN.md`](docs/BUILD-PLAN.md) specifies the work still to come: three
+standalone profiles (`minimal`, `lean`, `full`) replacing the single 26-step
+formula, bonded loop formulas for the review and iterate cycles, a standalone
+`bugfix-spec` formula, and the authoring docs for adding an extension or a formula.
 
 ## The name
 
-A sibling package, `orchestrate`, coordinates parallel subagents through beads DAGs.
-This one sequences phases for a single feature. A conductor keeps time through a
-score, which is what phase sequencing is.
+A sibling package, `orchestrate`, coordinates parallel subagents through beads
+DAGs. This one sequences phases for a single feature. A conductor keeps time
+through a score, which is what phase sequencing is.

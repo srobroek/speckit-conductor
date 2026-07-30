@@ -1,4 +1,9 @@
 # bd is the workflow engine: formulas are cooked and poured with it, so CI needs it
-# pinned rather than resolved to whatever is latest on the day.
+# pinned rather than resolved to whatever is latest on the day. Formula semantics
+# here are undocumented upstream -- `condition` has zero hits in published bd docs --
+# so a floating version would make a green CI run meaningless.
 [tools]
 "aqua:gastownhall/beads" = "1.1.2"
+# The tasks guard and the DAG validator are python3, and the guard runs on every
+# Write/Edit in a consuming repository.
+python = "3.13"
