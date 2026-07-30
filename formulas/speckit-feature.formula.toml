@@ -41,6 +41,22 @@ pattern = "^[0-9]{3}-[a-z0-9-]+$"
 required = false
 default = "no"
 
+# Whether the agent-assign extension is installed.
+#
+# `assign`, `validate`, and `implement` are all /speckit.agent-assign.* commands, so
+# without that extension those three steps name skills that do not exist -- which is
+# exactly what the first end-to-end run hit. Default "yes" because the formula was
+# built around this chain; pour with --var agent_assign=no when the extension is
+# absent, and the three steps drop out.
+#
+# Dropping them does NOT provide another way to implement. It removes the steps that
+# would have failed, so the molecule reflects what can actually run: work the task
+# beads under the implement step directly. `verify-tasks` anchors on `analyze` so the
+# verification half of the DAG survives either way.
+[vars.agent_assign]
+required = false
+default = "yes"
+
 [[steps]]
 id = "specify"
 title = "specify {{feature}}"
@@ -150,6 +166,7 @@ id = "assign"
 title = "agent assign {{feature}}"
 type = "task"
 needs = ["analyze", "analyze-approval"]
+condition = "{{agent_assign}} == yes"
 description = "Run /speckit.agent-assign.assign to map implementation task beads to agents."
 
 [steps.metadata]
@@ -160,6 +177,7 @@ id = "validate"
 title = "validate assignments {{feature}}"
 type = "task"
 needs = ["assign"]
+condition = "{{agent_assign}} == yes"
 description = "Run /speckit.agent-assign.validate to confirm every assigned agent exists."
 
 [steps.metadata]
@@ -170,6 +188,7 @@ id = "implement"
 title = "implement {{feature}}"
 type = "task"
 needs = ["validate"]
+condition = "{{agent_assign}} == yes"
 description = "Run /speckit.agent-assign.execute. Implementation task beads are children of this step; work them via bd ready -> bd update <id> --claim -> bd close <id> --reason. Per-file progress and retries ride a [wisp:worklog] gc_report wisp linked relates-to this step; the step thread keeps the outcome only."
 
 [steps.metadata]
@@ -179,7 +198,7 @@ skill_hints = "speckit.agent-assign.execute"
 id = "verify-tasks"
 title = "verify tasks {{feature}}"
 type = "task"
-needs = ["implement"]
+needs = ["analyze", "implement"]
 labels = ["agent:speckit-verify"]
 description = "Spawn the speckit-verify agent (mode: tasks) for phantom-completion detection; writes verify-tasks-report.md."
 
