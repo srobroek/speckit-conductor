@@ -99,6 +99,37 @@ what a reviewer would have been asked and why the run proceeded, before closing 
 run that leaves no note where a gate stood has discarded the gate rather than
 satisfied it.
 
+### Granting autonomy mid-run
+
+The flag is read at pour, so it fixes one molecule's shape. To grant autonomy to a run
+already in flight, resolve the remaining gates directly:
+
+```bash
+bd gate resolve <gate-id> --reason "<what a reviewer would have been asked>" --actor "<who granted it>"
+bd close <step-id> --reason "autonomous: findings recorded on the gate"
+```
+
+No re-pour, and the `--reason` and `--actor` are a better audit trail than the
+pour-time flag can leave, because they attach to the specific gate that was waived.
+
+## Without the agent-assign extension
+
+`assign`, `validate`, and `implement` are all `/speckit.agent-assign.*` commands. If
+that extension is not installed, pour with `--var agent_assign=no` and those three
+steps drop out.
+
+That does not provide another way to implement — it removes the steps that would have
+named a skill that does not exist, so the molecule reflects what can actually run.
+Work the task beads under the implement step directly. `verify-tasks` anchors on
+`analyze`, so the verification half of the DAG survives either way.
+
+| `autonomous` | `agent_assign` | steps |
+|---|---|---|
+| `no` (default) | `yes` (default) | 30 |
+| `yes` | `yes` | 24 |
+| `no` | `no` | 27 |
+| `yes` | `no` | 21 |
+
 ## Task state
 
 `specs/*/tasks.md` is read-only legacy. Implementation tasks are children of the
