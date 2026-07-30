@@ -157,10 +157,22 @@ variables rather than filesystem state.
 
 ## Roadmap
 
-[`docs/BUILD-PLAN.md`](docs/BUILD-PLAN.md) specifies the work still to come: three
-standalone profiles (`minimal`, `lean`, `full`) replacing the single 26-step
-formula, bonded loop formulas for the review and iterate cycles, a standalone
-`bugfix-spec` formula, and the authoring docs for adding an extension or a formula.
+One formula ships today: `speckit-feature`, the 26-step spine. Depth is chosen with
+the `autonomous` and `agent_assign` vars at pour rather than by picking a different
+formula.
+
+Still to come, and NOT shipped:
+
+| Planned | Status |
+|---|---|
+| `minimal` / `lean` / `full` standalone profiles | designed, not written |
+| bonded loop formulas for the review and iterate cycles | designed, not written |
+| a standalone `bugfix-spec` formula | designed, not written |
+| authoring docs for adding an extension or a formula | not written |
+
+The steering's routing table names `mol-speckit-iterate` and
+`mol-speckit-fix-findings`; neither exists yet, so those routes are advice about
+where a molecule *would* attach rather than something you can pour.
 
 ## The name
 

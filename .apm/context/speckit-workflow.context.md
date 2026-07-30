@@ -112,9 +112,9 @@ NOT Defer recording to retro or closeout. By then the rejected options are gone,
 | observed condition | route |
 |---|---|
 | Approved intent is correct and implementation is incomplete | converge |
-| Approved intent or approach changes | mol-speckit-iterate molecule |
+| Approved intent or approach changes | mol-speckit-iterate molecule (NOT YET BUILT: no such formula, work the change in place and note it on the step) |
 | Implemented code has a defect | bugfix skill |
-| Review, QA, or security finds actionable defects | mol-speckit-fix-findings molecule |
+| Review, QA, or security finds actionable defects | mol-speckit-fix-findings molecule (NOT YET BUILT: no such formula, create the fixes as children of the step that found them) |
 | Change fits one paragraph and needs no full lifecycle | tinyspec |
 
 CLOSEOUT
