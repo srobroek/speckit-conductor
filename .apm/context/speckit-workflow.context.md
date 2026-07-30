@@ -10,12 +10,16 @@ MUST Invoke SpecKit commands through their runtime-native skill interface.
 MUST Keep corrections with the same live agent through the runtime-native
   messaging operation until its assigned work passes review.
 NOT Invoke deprecated `/speckit.implement`; route through the agent-assign chain
-  (assign -> validate -> execute) and work the molecule steps.
+  (assign -> validate -> execute) and work the molecule steps. `speckit-basic` has no
+  such chain: its `implement` step works the task beads under it directly, on every
+  pour, because the profile carries nothing optional.
 NOT Proceed with open questions, unresolved gaps, or unapproved intent changes.
 
 SETUP (once per repo)
-MUST Copy `formulas/speckit-feature.formula.toml` into `.beads/formulas/` (or
-  `~/.beads/formulas/`); verify with `bd formula show speckit-feature --json`.
+MUST Copy every `formulas/*.formula.toml` into `.beads/formulas/` (or
+  `~/.beads/formulas/`); verify each with `bd cook <name>`. The `speckit-setup` skill
+  does this. Keep the `mol-` prefixed filenames as shipped -- bd resolves a formula by
+  filename stem, and `bd mol bond` resolves a formula name only when it is prefixed.
 DEFAULT Without a beads workspace, preserve upstream SpecKit artifact behavior.
 
 SPEC IDENTITY
@@ -25,8 +29,11 @@ MUST Set `--spec-id <NNN-slug>` on every bead a spec produces -- molecule root,
   not. This is the only statement of the convention; other sections rely on it.
 
 MOLECULE PER FEATURE
-MUST Pour one molecule per spec dir (`bd mol pour speckit-feature --var
-  feature=<NNN-slug>`), then tag the root -- one spec dir = one root:
+MUST Pour one molecule per spec dir, then tag the root -- one spec dir = one root.
+  Pick the depth profile first: `speckit-basic` (10 steps, spec-kit core only),
+  `speckit-lean` (18 steps, the quality spine), or `speckit-feature` (26 steps, the
+  full spine). All three take `autonomous` and `agent_assign` with the same defaults.
+  `bd mol pour <profile> --var feature=<NNN-slug>`, then:
   `bd update <root-id> --spec-id <NNN-slug> --metadata
   '{"spec_dir":"specs/<NNN-slug>"}'`.
 DEFAULT Track position with `bd mol current <root-id>`; `bd gate check` at
@@ -112,10 +119,27 @@ NOT Defer recording to retro or closeout. By then the rejected options are gone,
 | observed condition | route |
 |---|---|
 | Approved intent is correct and implementation is incomplete | converge |
-| Approved intent or approach changes | mol-speckit-iterate molecule |
-| Implemented code has a defect | bugfix skill |
-| Review, QA, or security finds actionable defects | mol-speckit-fix-findings molecule |
+| Approved intent or approach changes | `mol-speckit-iterate` molecule |
+| spec.md text changes and plan/tasks must follow | `mol-speckit-refine` molecule |
+| Implemented code has a defect | `speckit-bugfix` skill, or the `mol-speckit-bugfix` molecule when the fix needs a tracked trail |
+| Review, QA, or security finds actionable defects | `mol-speckit-fix-findings` molecule |
 | Change fits one paragraph and needs no full lifecycle | tinyspec |
+
+SUB-PROCESS MOLECULES
+MUST Bond a sub-process onto the feature molecule rather than pouring it loose:
+  `bd mol bond mol-speckit-<name> <target-id> --var feature=<NNN-slug>`. A loose pour
+  leaves a second root with no link to the feature that needs it.
+MUST Choose the target by when the work must run. Bonding to the feature ROOT blocks
+  the sub-molecule behind the whole feature (`blocks` edge onto the root), so its steps
+  never become ready mid-run. Bond to the STEP that found the work -- the sub-root
+  attaches `parent-child` and its first step is ready as soon as that step is.
+NOT Expect `bd mol bond` to resolve an unprefixed name. `bd mol bond speckit-iterate`
+  reports `not found (not an issue ID or formula name)`; only the `mol-` prefixed
+  filename stem resolves.
+DEFAULT Express a loop of unknown length as a bonded molecule. A `needs` cycle is
+  rejected at pour (`adding dependency would create a cycle`), so send work backwards by
+  reopening the earlier step (`bd update <id> --status open`), and bond a second copy of
+  the molecule for a second pass.
 
 CLOSEOUT
 MUST Close the feature root after its final step and follow the active Beads

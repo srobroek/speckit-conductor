@@ -142,11 +142,15 @@ CATALOG_URL="https://raw.githubusercontent.com/github/spec-kit/main/extensions/c
 # verify + verify-tasks are NOT in this list: verification runs via the merged
 # `speckit-verify` local agent (spawned as a prompt step in the workflow YAMLs),
 # which writes the required report files that gate downstream DAG nodes.
+#
+# bugfix + refine back the mol-speckit-bugfix and mol-speckit-refine sub-process
+# formulas, which are bonded onto a running feature molecule rather than being
+# steps in any profile's spine.
 EXTENSIONS=(
   agent-assign
-  cleanup critique
+  bugfix cleanup critique
   fix-findings iterate qa
-  retro review roadmap security-review
+  refine retro review roadmap security-review
   status-report=latest-release:Open-Agent-Tools/spec-kit-status
   tinyspec
 )
@@ -360,7 +364,7 @@ for wf in "${LEGACY_WORKFLOWS[@]}"; do
   fi
 done
 
-echo "==> 5/6 provision beads workflow (speckit-feature formula)"
+echo "==> 5/6 provision beads workflow (formulas)"
 # Workflow state lives in beads (bd). speckit-gate (PyPI, gates.yaml) is
 # retired/archived; this package supplies a bd formula whose
 # poured molecule IS the phase DAG (human gates included). Guard: skip
@@ -376,34 +380,41 @@ if command -v bd >/dev/null 2>&1; then
     echo "    beads workspace already present"
   fi
 
-  # Install the feature-lifecycle formula, which this package ships under
-  # formulas/. Resolution order mirrors how hook scripts locate their plugin
-  # root: installed plugin dir first, then the monorepo source (dev checkouts).
-  # The last candidate is the in-package path, four levels up from
-  # .apm/skills/speckit-setup/scripts.
-  FORMULA_NAME="speckit-feature.formula.toml"
-  FORMULA_SRC=""
-  for cand in \
-    "$HOME/.beads/formulas/$FORMULA_NAME" \
-    "./apm_modules/srobroek/speckit-conductor/formulas/$FORMULA_NAME" \
-    "$HOME/.apm/apm_modules/srobroek/speckit-conductor/formulas/$FORMULA_NAME" \
-    "$HOME/.claude/plugins/speckit-conductor/formulas/$FORMULA_NAME" \
-    "$SCRIPT_DIR/../../../../formulas/$FORMULA_NAME"; do
-    if [ -f "$cand" ]; then FORMULA_SRC="$cand"; break; fi
-  done
-  if [ "$FORMULA_SRC" = "$HOME/.beads/formulas/$FORMULA_NAME" ]; then
-    echo "    formula available user-level (~/.beads/formulas) -- no project copy needed"
-  elif [ -n "$FORMULA_SRC" ]; then
-    mkdir -p .beads/formulas
-    cp "$FORMULA_SRC" .beads/formulas/
-    if bd formula show speckit-feature >/dev/null 2>&1; then
-      echo "    formula speckit-feature installed and parseable"
+  # Install the formulas this package ships under formulas/: three depth profiles
+  # plus four bonded sub-process molecules. Resolution order mirrors how hook
+  # scripts locate their plugin root: installed plugin dir first, then the monorepo
+  # source (dev checkouts). The last candidate is the in-package path, four levels
+  # up from .apm/skills/speckit-setup/scripts.
+  #
+  # The `mol-` prefix on the sub-process filenames is load-bearing: `bd mol bond`
+  # resolves a formula name only when it is prefixed, and bd resolves a formula by
+  # filename stem rather than by the `formula` key inside the file.
+  FORMULAS="speckit-feature speckit-lean speckit-basic mol-speckit-iterate mol-speckit-fix-findings mol-speckit-bugfix mol-speckit-refine"
+  for FORMULA in $FORMULAS; do
+    FORMULA_NAME="$FORMULA.formula.toml"
+    FORMULA_SRC=""
+    for cand in \
+      "$HOME/.beads/formulas/$FORMULA_NAME" \
+      "./apm_modules/srobroek/speckit-conductor/formulas/$FORMULA_NAME" \
+      "$HOME/.apm/apm_modules/srobroek/speckit-conductor/formulas/$FORMULA_NAME" \
+      "$HOME/.claude/plugins/speckit-conductor/formulas/$FORMULA_NAME" \
+      "$SCRIPT_DIR/../../../../formulas/$FORMULA_NAME"; do
+      if [ -f "$cand" ]; then FORMULA_SRC="$cand"; break; fi
+    done
+    if [ "$FORMULA_SRC" = "$HOME/.beads/formulas/$FORMULA_NAME" ]; then
+      echo "    $FORMULA available user-level (~/.beads/formulas) -- no project copy needed"
+    elif [ -n "$FORMULA_SRC" ]; then
+      mkdir -p .beads/formulas
+      cp "$FORMULA_SRC" .beads/formulas/
+      if bd cook "$FORMULA" >/dev/null 2>&1; then
+        echo "    formula $FORMULA installed and cooks clean"
+      else
+        echo "    WARNING: $FORMULA copied but bd cook failed -- check bd version (need >= 1.1.0)" >&2
+      fi
     else
-      echo "    WARNING: formula copied but bd formula show failed -- check bd version (need >= 1.1.0)" >&2
+      echo "    WARNING: $FORMULA formula not found -- reinstall the speckit package, then re-run" >&2
     fi
-  else
-    echo "    WARNING: speckit-feature formula not found -- reinstall the speckit package, then re-run" >&2
-  fi
+  done
 else
   echo "    SKIP: bd (beads) not on PATH" >&2
   echo "          Install hint: mise use -g aqua:gastownhall/beads@latest" >&2
