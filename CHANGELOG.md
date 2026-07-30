@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.0.0](https://github.com/srobroek/speckit-conductor/compare/v3.0.0...v4.0.0) (2026-07-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* drop the implement-task and research agents ([#5](https://github.com/srobroek/speckit-conductor/issues/5))
+
+### Code Refactoring
+
+* drop the implement-task and research agents ([#5](https://github.com/srobroek/speckit-conductor/issues/5)) ([e985503](https://github.com/srobroek/speckit-conductor/commit/e985503d30d709b9d586853df3930017a6b2b260))
+
 ## [3.0.0](https://github.com/srobroek/speckit-conductor/compare/v2.0.0...v3.0.0) (2026-07-30)
 
 
