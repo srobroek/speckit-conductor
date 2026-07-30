@@ -146,7 +146,14 @@ CATALOG_URL="https://raw.githubusercontent.com/github/spec-kit/main/extensions/c
 # bugfix + refine back the mol-speckit-bugfix and mol-speckit-refine sub-process
 # formulas, which are bonded onto a running feature molecule rather than being
 # steps in any profile's spine.
+# agent-context is one of the four OFFICIAL extensions and it owns the
+# `<!-- SPECKIT START -->` / `<!-- SPECKIT END -->` markers in CLAUDE.md that
+# speckit-plan's Phase 1 tells agents to update. Without it those markers never
+# exist, so that instruction is unactionable -- two autonomous runs each reached
+# it, found nothing to edit, and skipped the step. Verified absent from a scaffold
+# built without it.
 EXTENSIONS=(
+  agent-context
   agent-assign
   bugfix cleanup critique
   fix-findings iterate qa

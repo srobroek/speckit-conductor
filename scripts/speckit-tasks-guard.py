@@ -44,13 +44,22 @@ DENY_REASON = (
     "with bd create -f <tmpfile>.md (write the temp file OUTSIDE specs/). Then "
     "work the tasks via bd ready -> bd update <id> --claim -> bd close <id> "
     '--reason "...". Find the implement step with bd mol current '
-    "<molecule-root-id>."
+    "<molecule-root-id>. "
+    "IF A SKILL DEMANDED tasks.md: 13 of the installed skills call "
+    "check-prerequisites.sh --require-tasks, which prints \"ERROR: tasks.md not "
+    "found -- Run /speckit-tasks first\" and exits 1. That precondition cannot "
+    "be satisfied here and is not meant to be: skip the script and read task "
+    "state from beads instead, with bd list --spec <NNN-slug>. Do not create "
+    "tasks.md to get past the check -- that is the one move this guard exists to "
+    "stop."
 )
 
 BASH_ADVICE = (
     "SPECKIT: tasks.md is not authored in beads repos; task state lives "
     "in beads: bd ready / bd update <id> --claim / bd close <id> --reason. If "
-    "reading legacy tasks.md for migration, that's fine."
+    "reading legacy tasks.md for migration, that's fine. If a skill's "
+    "check-prerequisites.sh --require-tasks just failed: that check cannot pass "
+    "here -- skip it and read bd list --spec <NNN-slug> instead."
 )
 
 IMPLEMENT_ADVICE = (
