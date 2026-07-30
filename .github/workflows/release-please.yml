@@ -37,7 +37,7 @@ jobs:
         if: env.HAVE_APP_KEY == 'true'
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1  # v3.2.0
         with:
-          app-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
           # Scoped rather than inheriting the installation's blanket permissions:
           # release-please writes the release commit and tag, and opens the pull
