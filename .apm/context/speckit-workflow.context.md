@@ -64,6 +64,10 @@ NOT Wait on a human gate in an unattended run. `bd gate check` does not see a hu
 MUST When a gate was skipped that way, record on the preceding step's bead what a
   reviewer would have been asked and why the run proceeded, before closing it. A
   skipped gate that leaves no note has been discarded rather than satisfied.
+DEFAULT Granted autonomy mid-run, after a gated pour: resolve each remaining gate with
+  `bd gate resolve <gate-id> --reason "<what a reviewer would have been asked>"
+  --actor "<who granted it>"`, then close the step. No re-pour is needed; the reason
+  and actor are the audit trail that the pour-time flag cannot record.
 NOT `bd close <gate-id>` to resolve a gate, which `bd gate list` suggests. The gate
   and its step are separate beads; closing the gate bead leaves the step blocked.
 DEFAULT Optional steps (critique, security-review): close `--reason skipped`
