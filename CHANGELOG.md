@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/srobroek/speckit-conductor/compare/v1.1.0...v2.0.0) (2026-07-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* ship a .apm/ directory, without which apm install rejected the package
+
+### Bug Fixes
+
+* ship a .apm/ directory, without which apm install rejected the package ([d879e42](https://github.com/srobroek/speckit-conductor/commit/d879e4295518c795bfe23d1dbf17f7243108ecfe))
+
 ## [1.1.0](https://github.com/srobroek/speckit-conductor/compare/v1.0.0...v1.1.0) (2026-07-30)
 
 
