@@ -1,5 +1,18 @@
 name: Release Please
 
+# TOKEN: the release pull request is authored with a GitHub App token
+# (RELEASE_APP_CLIENT_ID + RELEASE_APP_PRIVATE_KEY), not the default GITHUB_TOKEN.
+# GitHub deliberately does not trigger workflows from GITHUB_TOKEN commits, and
+# release-please needs a triggered run after its own pull request merges in order to
+# cut the tag. Without that run it reports "There are untagged, merged release PRs
+# outstanding - aborting" on every subsequent push, and the version never ships --
+# observed here on v1.0.0, which had to be tagged by hand.
+#
+# App permissions required: Contents RW + Pull requests RW. The App must also be
+# installed on this repository, and RELEASE_APP_PRIVATE_KEY set as a repository
+# secret; the workflow falls back to GITHUB_TOKEN when the secret is absent, which
+# opens the release pull request but cannot tag it.
+
 on:
   push:
     branches: [main]
@@ -11,9 +24,30 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # `secrets` is not available in a step-level `if`, so presence is carried through
+    # env, which is.
+    env:
+      HAVE_APP_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY != '' }}
     steps:
+      - name: Mint release-app token
+        id: app-token
+        # Skipped when the private key is absent, so a fresh clone of this workflow
+        # still opens release pull requests rather than failing outright.
+        if: env.HAVE_APP_KEY == 'true'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1  # v3.2.0
+        with:
+          app-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          # Scoped rather than inheriting the installation's blanket permissions:
+          # release-please writes the release commit and tag, and opens the pull
+          # request. Nothing else.
+          permission-contents: write
+          permission-pull-requests: write
+
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7  # v5
         id: release
         with:
+          token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
