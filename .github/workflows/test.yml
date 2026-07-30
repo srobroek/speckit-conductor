@@ -94,6 +94,10 @@ jobs:
         run: |
           shopt -s nullglob
           found=0
+          # `bd cook` resolves the formula through a workspace, so a database has to
+          # exist first: without it every cook fails "no beads database found",
+          # which reads as a broken formula rather than a missing init.
+          bd init --quiet
           for f in formulas/*.formula.toml; do
             found=1
             name="$(basename "$f" .formula.toml)"
