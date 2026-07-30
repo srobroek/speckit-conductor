@@ -21,13 +21,21 @@ Or as a dependency:
 dependencies:
   apm:
     - git: srobroek/speckit-conductor
-      ref: '>=2.0.0 <3.0.0'
+      ref: '>=3.0.0 <4.0.0'
       targets: [claude, codex]
 ```
 
 Requires the `bd` CLI (`gastownhall/beads` >= 1.1.0) and `python3` on `PATH`. The
 guard and the steering are inert in a repository without `.beads/`, so installing
 it costs nothing until beads is initialised.
+
+**APM install only.** Do not install this as a native plugin. `apm pack` synthesises
+a `plugin.json` with no `dependencies` field, and a Codex plugin manifest has no such
+field at all, so a native `/plugin` install resolves the skills and hooks here and
+silently none of the dependencies below. The steering would then describe a `bd`
+workflow with no `bd` package behind it. APM composes the full graph; verified on both
+runtimes in a fresh repository, where `apm install --target claude,codex` pulls three
+packages and wires four agents and four skills on each.
 
 ## What arrives
 
