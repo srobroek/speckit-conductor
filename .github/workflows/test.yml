@@ -23,6 +23,9 @@ jobs:
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
         with:
           python-version: "3.13"
+          # No lockfile yet, so there is nothing to cache and the post-run step fails
+          # on the missing path. Enable this once dependencies exist.
+          enable-cache: false
 
       # Skips cleanly while tests/ is empty, so the gate exists from the first
       # commit rather than being added once something is already untested.
