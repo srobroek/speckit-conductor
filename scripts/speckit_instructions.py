@@ -153,6 +153,14 @@ INSTRUCTIONS: dict[str, str] = {
     # --- findings have somewhere to go --------------------------------------
     "analyze": (
         "Task state comes from `bd list --spec <NNN-slug>`, not tasks.md.\n\n"
+        "RUN THIS INLINE. Do not hand it to a subagent: a delegated child does not "
+        "inherit this project's working directory, and three autonomous runs each "
+        "had one analyze the WRONG REPOSITORY and report confident findings about "
+        "files the feature never touched -- one called the feature under test \"a "
+        "phantom\". A wrong answer here is worse than no answer, because it reads "
+        "as authoritative. The formula marks this step interactive for that "
+        "reason. It also returned long after the step had closed, so its output "
+        "arrived too late to act on.\n\n"
         "Carry an unresolved finding on an escalation wisp, and encode the "
         "resolution into spec.md or plan.md before burning it. A finding that lives "
         "only in this command's output is lost when the turn ends."
