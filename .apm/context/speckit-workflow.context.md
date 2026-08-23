@@ -46,14 +46,18 @@ MUST At spec start (/speckit.specify), query parked work (`bd list --status
 
 TASK STATE
 MUST When /speckit.tasks instructs writing specs/*/tasks.md, create beads
-  instead: `bd create "T00N <title>" --parent <implement-step-id> --spec-id
+  instead, GROUPED under features: one `bd create -t feature --parent
+  <implement-step-id> --spec-id <NNN-slug>` per coherent unit of work (what ships
+  and reviews together -- one branch, one PR -- grouped by file ownership, not by
+  phase), then `bd create "T00N <title>" --parent <feature-id> --spec-id
   <NNN-slug> -t task`; order with `bd dep add <later> <earlier>`; bulk
   `bd create -f <tmp>.md` OUTSIDE specs/.
 MUST Use `discovered-from` deps for follow-up work found mid-task.
 MUST When a later phase (analyze, verify-tasks, converge) instructs reading
   tasks.md for task state, query beads instead: `bd query 'spec_id="<NNN-slug>"'
   --json`, `bd ready`, or `bd swarm status <root-id>`.
-MUST Keep the implement parent open until every implementation child is closed.
+MUST Keep the implement parent and every feature under it open until their
+  children are closed.
   `bd close` on a parent with open children succeeds silently.
 DEFAULT Human review of the breakdown: `bd graph <implement-step-id>` or the
   bv TUI. A PostToolUse read advisory exists as backstop only.
@@ -86,7 +90,9 @@ EXECUTION ROUTING
 DEFAULT Steps carry `labels = ["agent:<name>"]` plus `metadata`
   (`skill_hints`, `execution_agent_type`, `execution_mode`); read them with
   `bd show <id> --json` to pick the skill or subagent. `skill_hints` is the key
-  orchestrate's domain-specialist reads, so one step routes to either driver.
+  orchestrate's architect reads, so one step routes to either driver: run the
+  skill yourself, or hand the implement feature to an architect, which decomposes
+  and runs it the same way.
 MUST Work steps via `bd update <id> --claim` -> do the work ->
   `bd close <id> --reason`; end mutating sessions with `bd dolt push`.
 

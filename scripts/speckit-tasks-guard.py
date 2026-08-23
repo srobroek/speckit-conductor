@@ -39,7 +39,9 @@ DENY_REASON = (
     "authored): this repo has an active beads workspace, so specs/*/tasks.md is "
     "read-only legacy and must not be written or created. Create implementation "
     "tasks as beads under the feature molecule's implement step instead: bd "
-    'create "T00N <title>" --parent <implement-step-id> --spec-id <NNN-slug> -t '
+    'create "<group>" -t feature --parent <implement-step-id> --spec-id <NNN-slug>` '
+    'per coherent unit of work, then `bd '
+    'create "T00N <title>" --parent <feature-id> --spec-id <NNN-slug> -t '
     "task; wire ordering with bd dep add <later-id> <earlier-id>; bulk-create "
     "with bd create -f <tmpfile>.md (write the temp file OUTSIDE specs/). Then "
     "work the tasks via bd ready -> bd update <id> --claim -> bd close <id> "

@@ -33,9 +33,12 @@ _PROFILES = (
 # The replacement for a tasks.md write, spelled out once.
 _TASKS_REDIRECT = (
     "Task state lives in beads and specs/*/tasks.md is read-only legacy here, so a "
-    "write to it is denied. Create the work as children of the molecule's implement "
-    "step instead: `bd create \"<title>\" --parent <implement-step-id> "
-    "--spec-id <NNN-slug> -t task`, ordering with `bd dep add <later> <earlier>`. "
+    "write to it is denied. Create the work under the molecule's implement step "
+    "instead, GROUPED under features: one `bd create \"<group>\" -t feature "
+    "--parent <implement-step-id> --spec-id <NNN-slug>` per coherent unit of work "
+    "(what ships and reviews together, grouped by file ownership), then "
+    "`bd create \"<title>\" --parent <feature-id> --spec-id <NNN-slug> -t task`, "
+    "ordering with `bd dep add <later> <earlier>`. "
     "Find the implement step with `bd mol current <molecule-root-id>`."
 )
 
