@@ -114,7 +114,7 @@ id = "tasks"
 title = "tasks {{feature}}"
 type = "task"
 needs = ["plan"]
-description = "Run /speckit.tasks, then create the task breakdown as child beads of the implement step (bd create --parent <implement-id> --spec-id {{feature}}). Never write specs/{{feature}}/tasks.md; the write is denied."
+description = "Run /speckit.tasks, then create the task breakdown as child beads of the implement step (bd create --parent <implement-id> --spec-id {{feature}}). Group the breakdown as you create it: one `feature` bead per coherent unit of work (bd create -t feature --parent <implement-id> --spec-id {{feature}}), then the task beads as children of the feature they belong to. A feature is what ships and reviews together -- one branch, one PR -- so group by file ownership and shared context, not by phase or topic. The spec then reads epic -> feature -> task, and a flat task list under implement is a decomposition that has not been done yet. Never write specs/{{feature}}/tasks.md; the write is denied."
 
 [steps.metadata]
 skill_hints = "speckit.tasks"
@@ -186,10 +186,10 @@ skill_hints = "speckit.agent-assign.validate"
 [[steps]]
 id = "implement"
 title = "implement {{feature}}"
-type = "task"
+type = "feature"
 needs = ["validate"]
 condition = "{{agent_assign}} == yes"
-description = "Run /speckit.agent-assign.execute. Implementation task beads are children of this step; work them via bd ready -> bd update <id> --claim -> bd close <id> --reason. Per-file progress and retries ride a [wisp:worklog] gc_report wisp linked relates-to this step; the step thread keeps the outcome only."
+description = "Run /speckit.agent-assign.execute, or hand this bead to an orchestrate architect, which decomposes and runs it the same way. Implementation task beads are children of this `feature` step; work them via bd ready -> bd update <id> --claim -> bd close <id> --reason. Per-file progress and retries ride a [wisp:worklog] gc_report wisp linked relates-to this step; the step thread keeps the outcome only."
 
 [steps.metadata]
 skill_hints = "speckit.agent-assign.execute"

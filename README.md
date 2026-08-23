@@ -118,10 +118,10 @@ steps drop out.
 
 That does not provide another way to implement — it removes the steps that would have
 named a skill that does not exist, so the molecule reflects what can actually run.
-Work the task beads under the implement step directly. `verify-tasks` anchors on
+Work the feature and task beads under the implement step directly. `verify-tasks` anchors on
 `analyze`, so the verification half of the DAG survives either way.
 
-`speckit-basic` has no such chain. Its `implement` step works the task beads under it
+`speckit-basic` has no such chain. Its `implement` step works the features and tasks under it
 directly, on every pour, so `agent_assign` conditions no step there.
 
 ## Depth profiles
@@ -189,12 +189,20 @@ copy for a second pass.
 
 ## Task state
 
-`specs/*/tasks.md` is read-only legacy. Implementation tasks are children of the
-molecule's implement step:
+`specs/*/tasks.md` is read-only legacy. Implementation tasks are grouped under features
+beneath the molecule's implement step, so a spec reads epic -> feature -> task:
 
 ```bash
-bd create "T00N <title>" --parent <implement-step-id> --spec-id <NNN-slug>
+# one feature per coherent unit of work -- what ships and reviews together
+bd create "<group>" -t feature --parent <implement-step-id> --spec-id <NNN-slug>
+# then its tasks
+bd create "T00N <title>" --parent <feature-id> --spec-id <NNN-slug>
 ```
+
+Group by file ownership and shared context rather than by phase: tasks touching
+the same file belong to one feature, and features with disjoint file sets can be
+worked concurrently. A flat task list under `implement` is a decomposition that
+has not happened yet.
 
 Reads of an existing `tasks.md` stay allowed, so a brownfield repository can
 migrate.

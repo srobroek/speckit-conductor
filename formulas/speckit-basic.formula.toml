@@ -89,7 +89,7 @@ id = "tasks"
 title = "tasks {{feature}}"
 type = "task"
 needs = ["plan"]
-description = "Run /speckit.tasks, then create the task breakdown as child beads of the implement step (bd create --parent <implement-id> --spec-id {{feature}}). Never write specs/{{feature}}/tasks.md; the write is denied."
+description = "Run /speckit.tasks, then create the task breakdown as child beads of the implement step (bd create --parent <implement-id> --spec-id {{feature}}). Group the breakdown as you create it: one `feature` bead per coherent unit of work (bd create -t feature --parent <implement-id> --spec-id {{feature}}), then the task beads as children of the feature they belong to. A feature is what ships and reviews together -- one branch, one PR -- so group by file ownership and shared context, not by phase or topic. The spec then reads epic -> feature -> task, and a flat task list under implement is a decomposition that has not been done yet. Never write specs/{{feature}}/tasks.md; the write is denied."
 
 [steps.metadata]
 skill_hints = "speckit.tasks"
@@ -119,7 +119,7 @@ type = "human"
 [[steps]]
 id = "implement"
 title = "implement {{feature}}"
-type = "task"
+type = "feature"
 needs = ["analyze", "analyze-approval"]
 description = "Work the implementation task beads that are children of this step: bd ready -> bd update <id> --claim -> bd close <id> --reason. There is no assign/validate chain in this profile. Per-file progress and retries ride a [wisp:worklog] wisp linked relates-to this step; the step thread keeps the outcome only. Keep this step open until every child is closed -- bd close on a parent with open children succeeds silently."
 
