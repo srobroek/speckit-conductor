@@ -1,5 +1,17 @@
 # Changelog
 
+## [6.0.0](https://github.com/srobroek/speckit-conductor/compare/v5.1.0...v6.0.0) (2026-08-23)
+
+
+### Features
+
+* group implementation tasks under features, not flat under implement ([#14](https://github.com/srobroek/speckit-conductor/issues/14)) ([5c2d248](https://github.com/srobroek/speckit-conductor/commit/5c2d248c9e9b1a7830ff9a3a769e68f53eb563d0))
+
+
+### Miscellaneous Chores
+
+* release 6.0.0 ([a0b70b4](https://github.com/srobroek/speckit-conductor/commit/a0b70b40ae3e1f345f30a44abe5eecf3f1d21d2a))
+
 ## [5.1.0](https://github.com/srobroek/speckit-conductor/compare/v5.0.0...v5.1.0) (2026-08-17)
 
 
