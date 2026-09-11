@@ -11,7 +11,7 @@
         ]
       },
       {
-        "matcher": "Write|Edit|MultiEdit|Bash|Skill",
+        "matcher": "apply_patch|Write|Edit|MultiEdit|Bash|Skill",
         "hooks": [
           {
             "type": "command",
