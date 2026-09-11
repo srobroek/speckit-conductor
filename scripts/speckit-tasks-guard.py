@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
 """Cross-tool hook with several roles, branched on `tool_name`.
 
-PreToolUse (Write|Edit|MultiEdit|apply_patch): DENY every write to
-specs/*/tasks.md when the repo has an active beads workspace. tasks.md is never
-authored under the beads workflow -- task state lives in beads. The deny reason
+PreToolUse (Write|Edit|MultiEdit|apply_patch): DENY writes to
+specs/*/tasks.md when the repo has an active beads workspace. Also DENY writes to
+specs/<feature>/spec.md when that feature has no poured molecule root tagged to its
+spec directory. tasks.md is never authored under the beads workflow -- task state
+lives in beads. A spec.md is written only after its molecule exists. The deny reason
 carries the full replacement workflow so the agent self-corrects without a human
 (hook-guard policy: deny is agent-facing, never "ask").
 
 PreToolUse (Bash): ADVISORY ONLY -- a command string referencing a
 specs/*/tasks.md path gets a non-blocking additionalContext note (task state
-lives in beads). No redirect parsing; plain substring match.
+lives in beads). A write-shaped command targeting spec.md is denied by the same
+molecule precondition; reads stay allowed. No redirect parsing beyond the existing
+conservative write-shape detection.
 
 PreToolUse (Skill): ADVISORY ONLY -- invoking speckit-implement gets a
 non-blocking note that /speckit.implement is deprecated in beads repos; route
@@ -21,19 +25,25 @@ path. This is documented and pinned by
 packages/speckit/tests/test_speckit_tasks_guard.py ("string-form tool_input allows").
 
 Self-gating (never rely on the matcher): exits 0 silently when the payload is
-empty, `bd` is missing, the target path is not specs/*/tasks.md, or the repo has
-no active beads workspace (`bd where` fails).
+empty, `bd` is missing, the target path is not a guarded SpecKit artifact, or
+the repo has no active beads workspace (`bd where` fails).
 """
-
 from __future__ import annotations
 
 import sys
 
+SPEC_DENY_REASON = (
+    "blocked by speckit: specs/{feature}/spec.md is write-protected until its "
+    "feature molecule exists in the active beads workspace. Pour one first with "
+    "`bd mol pour <profile> --var feature={feature}`; choose one of the supported "
+    "profiles: `speckit-basic`, `speckit-lean`, or `speckit-feature`. Then tag the "
+    "root with `bd update <root-id> --spec-id {feature} --metadata "
+    "'{{\"spec_dir\":\"specs/{feature}\"}}'`. Reads remain allowed."
+)
+
 # Only `sys` at module scope. This hook is bound to Write/Edit/MultiEdit/Bash/
 # Skill/apply_patch and runs on most tool calls in a SpecKit beads repo, so the
 # cheap substring bail in main() must precede any import.
-
-
 DENY_REASON = (
     "blocked by speckit (task state lives in beads, tasks.md is never "
     "authored): this repo has an active beads workspace, so specs/*/tasks.md is "
@@ -70,6 +80,66 @@ IMPLEMENT_ADVICE = (
     "validate -> execute), working the molecule steps via bd mol current / bd "
     "ready / bd update --claim / bd close."
 )
+
+def is_spec_md(path: str) -> bool:
+    """Whether `path` is a SpecKit feature spec: specs/<feature>/spec.md."""
+    import fnmatch
+
+    normalized = path.replace("\\", "/")
+    return fnmatch.fnmatchcase(normalized, "specs/*/spec.md") or fnmatch.fnmatchcase(
+        normalized, "*/specs/*/spec.md"
+    )
+
+
+def spec_feature(path: str) -> str:
+    """Extract the feature slug from a specs/<feature>/spec.md path."""
+    import re
+
+    normalized = path.replace("\\", "/")
+    match = re.search(r"(?:^|/)specs/([^/]+)/spec\.md$", normalized)
+    return match.group(1) if match else ""
+
+def poured_molecule_for_spec(cwd: str, feature: str) -> bool:
+    """Whether the active workspace has a molecule root tagged to this spec dir."""
+    import json
+    import subprocess
+
+    if not feature:
+        return False
+    try:
+        result = subprocess.run(
+            [
+                "bd",
+                "-C",
+                cwd,
+                "list",
+                "--all",
+                "--flat",
+                "--type",
+                "molecule",
+                "--metadata-field",
+                f"spec_dir=specs/{feature}",
+                "--json",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=10,
+        )
+        if result.returncode != 0:
+            return False
+        records = json.loads(result.stdout)
+        if not isinstance(records, list):
+            return False
+        return any(
+            isinstance(record, dict)
+            and record.get("issue_type") == "molecule"
+            and isinstance(record.get("metadata"), dict)
+            and record["metadata"].get("spec_dir") == f"specs/{feature}"
+            for record in records
+        )
+    except (OSError, subprocess.SubprocessError, TypeError, ValueError):
+        return False
 
 
 def writes_tasks_md(command: str) -> bool:
@@ -111,6 +181,31 @@ def writes_tasks_md(command: str) -> bool:
         if re.search(w + r"[^|;&]*specs/[^|;&]*/tasks\.md", command, re.DOTALL):
             return True
     return False
+
+
+def writes_spec_md(command: str) -> bool:
+    """Whether a shell command writes to a specs/*/spec.md path."""
+    import re
+
+    if re.search(r"[0-9]*&?>>?\s*['\"]?[^|;&]*specs/[^|;&]*/spec\.md", command, re.DOTALL):
+        return True
+    writers = (
+        r"\btee\b", r"\bsed\b\s+[^|;&]*-i", r"\btruncate\b", r"\bdd\b[^|;&]*\bof=",
+        r"\binstall\b", r"\bcp\b", r"\bmv\b", r"\bpython3?\b[^|;&]*-c",
+        r"\bperl\b[^|;&]*-[a-z]*e", r"\bawk\b[^|;&]*>", r"\btouch\b",
+    )
+    return any(re.search(w + r"[^|;&]*specs/[^|;&]*/spec\.md", command, re.DOTALL) for w in writers)
+
+
+def spec_feature_from_command(command: str) -> str:
+    """Extract a feature slug from a shell command's specs/*/spec.md path."""
+    import re
+
+    match = re.search(
+        r"(?<![A-Za-z0-9_.-])specs/([^/\s'\";&|]+)/spec\.md(?:$|[\s'\";&|])",
+        command,
+    )
+    return match.group(1) if match else ""
 
 
 def is_tasks_md(path: str) -> bool:
@@ -190,7 +285,7 @@ def patch_paths(patch: str) -> list[str]:
     return re.findall(r"^\*\*\* (?:Update|Add|Delete) File: (.*)$", patch, re.MULTILINE)
 
 
-def deny() -> None:
+def deny(reason: str = DENY_REASON) -> None:
     import json
 
     json.dump(
@@ -198,11 +293,15 @@ def deny() -> None:
             "hookSpecificOutput": {
                 "hookEventName": "PreToolUse",
                 "permissionDecision": "deny",
-                "permissionDecisionReason": DENY_REASON,
+                "permissionDecisionReason": reason,
             }
         },
         sys.stdout,
     )
+
+
+def deny_spec(feature: str) -> None:
+    deny(SPEC_DENY_REASON.format(feature=feature))
 
 
 def advise(event: str, context: str) -> None:
@@ -218,9 +317,14 @@ def main() -> int:
     payload = sys.stdin.read()
     if not payload:
         return 0
-    # Cheap pre-parse bail: every branch below acts on a tasks.md target or a
+    # Cheap pre-parse bail: every branch below acts on a guarded artifact or a
     # speckit-implement skill invocation; anything else needs no inspection.
-    if "tasks.md" not in payload and "speckit.implement" not in payload and "speckit-implement" not in payload:
+    if (
+        "tasks.md" not in payload
+        and "spec.md" not in payload
+        and "speckit.implement" not in payload
+        and "speckit-implement" not in payload
+    ):
         return 0
 
     import shutil
@@ -248,11 +352,17 @@ def main() -> int:
         cwd = os.getcwd()
 
     if tool_name in ("Write", "Edit", "MultiEdit"):
-        if not is_tasks_md(data["file_path"]):
+        path = data["file_path"]
+        if is_tasks_md(path):
+            if not beads_active(cwd):
+                return 0
+            deny()
             return 0
-        if not beads_active(cwd):
-            return 0
-        deny()
+        if is_spec_md(path):
+            feature = spec_feature(path)
+            if not beads_active(cwd) or poured_molecule_for_spec(cwd, feature):
+                return 0
+            deny_spec(feature)
         return 0
 
     if tool_name in ("apply_patch", "functions.apply_patch"):
@@ -262,31 +372,35 @@ def main() -> int:
                     return 0
                 deny()
                 return 0
+            if is_spec_md(path):
+                feature = spec_feature(path)
+                if not beads_active(cwd) or poured_molecule_for_spec(cwd, feature):
+                    continue
+                deny_spec(feature)
+                return 0
         return 0
 
     if tool_name == "Bash":
         # A Bash command touching specs/*/tasks.md is legitimate when it READS
         # (migration reads, greps, cat) and is the documented bypass when it
-        # WRITES. The first user of this package found that: `echo x >
-        # specs/001/tasks.md` sailed past the Write/Edit deny with only a note,
-        # so the guard's own README claim to deny "every Write/Edit" held while
-        # the cheapest possible write did not go through Write at all.
-        #
-        # So: deny a write, advise a read. Detecting the write is the whole job,
-        # and it is done by looking for a redirect or a writing utility aimed at
-        # the path rather than by parsing the shell -- an unparsable command
-        # falls through to the advisory, never to a false deny.
+        # WRITES. Spec writes use the same conservative writer detection but
+        # require a molecule root tagged to the feature first.
         import re
 
-        # Mirrors the shell glob `*specs/*/tasks.md*`: "specs/" must precede
-        # "/tasks.md" in the string, not merely both appear anywhere.
-        if re.search(r"specs/.*/tasks\.md", data["command"], re.DOTALL):
+        command = data["command"]
+        if re.search(r"specs/.*/tasks\.md", command, re.DOTALL):
             if not beads_active(cwd):
                 return 0
-            if writes_tasks_md(data["command"]):
+            if writes_tasks_md(command):
                 deny()
                 return 0
             advise("PreToolUse", BASH_ADVICE)
+            return 0
+        feature = spec_feature_from_command(command) if writes_spec_md(command) else ""
+        if feature:
+            if not beads_active(cwd) or poured_molecule_for_spec(cwd, feature):
+                return 0
+            deny_spec(feature)
         return 0
 
     if tool_name == "Skill":

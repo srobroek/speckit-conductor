@@ -47,9 +47,7 @@ _TASKS_REDIRECT = (
 INSTRUCTIONS: dict[str, str] = {
     # --- entry points: a pour decision applies ------------------------------
     "specify": (
-        "Pour a molecule before writing the spec. A spec written outside one is work "
-        "the DAG cannot see, and the phases after it have nothing to attach to.\n\n"
-        + _PROFILES
+        _PROFILES
         + "\n\nIf a molecule already exists for this feature, work it instead: "
         "`bd ready --unassigned --json`."
     ),

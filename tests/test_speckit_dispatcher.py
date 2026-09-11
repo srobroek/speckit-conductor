@@ -51,12 +51,12 @@ def decision(result: dict | None) -> str:
 def test_expansion_reads_command_name():
     """A typed /speckit.x arrives as command_name, before the command expands."""
     _, r = run({"hook_event_name": "UserPromptExpansion", "command_name": "speckit.specify"})
-    assert "Pour a molecule" in context(r)
+    assert "Profiles live" in context(r)
 
 
 def test_expansion_tolerates_a_leading_slash():
     _, r = run({"hook_event_name": "UserPromptExpansion", "command_name": "/speckit.specify"})
-    assert "Pour a molecule" in context(r)
+    assert "Profiles live" in context(r)
 
 
 def test_submit_parses_the_slash_command_out_of_prose():
@@ -91,11 +91,11 @@ def test_pretooluse_falls_back_to_prompt_for_codex():
     [
         (
             {"hook_event_name": "UserPromptSubmit", "prompt": "/speckit-specify add multiply"},
-            "Pour a molecule",
+            "Profiles live",
         ),
         (
             {"hook_event_name": "UserPromptExpansion", "command_name": "speckit-specify"},
-            "Pour a molecule",
+            "Profiles live",
         ),
         (
             {"hook_event_name": "UserPromptExpansion", "command_name": "/speckit-cleanup"},

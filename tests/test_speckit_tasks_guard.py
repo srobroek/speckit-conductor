@@ -4,9 +4,8 @@ command or a Skill invocation that touches the same ground.
 
 The deny is the part worth pinning hardest in both directions. tasks.md is
 never authored under the beads workflow, so writing one must be refused with
-the replacement workflow in the reason; but a write to any OTHER tasks.md, or
-to a spec file that is not tasks.md, is ordinary work and must pass. So must
-everything in a repository with no beads workspace.
+the replacement workflow in the reason; a feature spec.md also requires a
+poured molecule, while reads, unrelated files, and non-Beads workspaces pass.
 
 `bd` is stubbed on PATH so these tests describe the guard's logic rather than
 the machine's beads state.
@@ -35,15 +34,30 @@ def work(tmp_path: Path) -> Path:
     return root
 
 
-def _stub_bd(tmp_path: Path, *, active: bool) -> dict[str, str]:
+def _stub_bd(tmp_path: Path, *, active: bool, molecule: bool = False) -> dict[str, str]:
     stub_dir = tmp_path / "bin"
     stub_dir.mkdir(exist_ok=True)
     stub = stub_dir / "bd"
-    stub.write_text(f"#!/bin/sh\nexit {0 if active else 1}\n")
+    output = (
+        '[{"id":"root-001-feature","issue_type":"molecule",'
+        '"metadata":{"spec_dir":"specs/001-feature"}}]'
+        if molecule
+        else "[]"
+    )
+    stub.write_text(
+        "#!/bin/sh\n"
+        f"printf '%s\\n' '{output}'\n"
+        f"exit {0 if active else 1}\n"
+    )
     stub.chmod(0o755)
     environment = dict(os.environ)
     environment["PATH"] = f"{stub_dir}:{environment['PATH']}"
     return environment
+
+
+@pytest.fixture
+def bd_molecule(tmp_path: Path) -> dict[str, str]:
+    return _stub_bd(tmp_path, active=True, molecule=True)
 
 
 @pytest.fixture
@@ -153,11 +167,51 @@ def test_the_denial_answers_the_require_tasks_deadlock(work: Path, bd_active: di
     assert "bd list --spec" in reason, "no alternative source of task state is given"
 
 
+# --- the spec molecule gate -------------------------------------------------
+
+def test_spec_write_without_a_poured_molecule_is_denied(work: Path, bd_active: dict[str, str]) -> None:
+    _, output = run_guard(write_payload(work, "Write", str(work / "specs/001-feature/spec.md")), bd_active)
+    assert decision(output) == "deny"
+    reason = json.loads(output)["hookSpecificOutput"]["permissionDecisionReason"]
+    assert "bd mol pour <profile> --var feature=001-feature" in reason
+    assert all(profile in reason for profile in ("speckit-basic", "speckit-lean", "speckit-feature"))
+
+
+def test_edit_spec_without_a_poured_molecule_is_denied(work: Path, bd_active: dict[str, str]) -> None:
+    _, output = run_guard(write_payload(work, "Edit", str(work / "specs/001-feature/spec.md")), bd_active)
+    assert decision(output) == "deny"
+
+
+def test_apply_patch_spec_without_a_poured_molecule_is_denied(work: Path, bd_active: dict[str, str]) -> None:
+    payload = {
+        "cwd": str(work),
+        "hook_event_name": "PreToolUse",
+        "tool_name": "apply_patch",
+        "tool_input": {"command": f"*** Update File: {work / 'specs/001-feature/spec.md'}"},
+    }
+    _, output = run_guard(payload, bd_active)
+    assert decision(output) == "deny"
+
+
+def test_bash_spec_write_without_a_poured_molecule_is_denied(work: Path, bd_active: dict[str, str]) -> None:
+    _, output = run_guard(bash_payload(work, "echo title > specs/001-feature/spec.md"), bd_active)
+    assert decision(output) == "deny"
+
+
 # --- what must pass ---------------------------------------------------------
 
+def test_spec_write_with_a_poured_molecule_is_allowed(work: Path, bd_molecule: dict[str, str]) -> None:
+    _, output = run_guard(write_payload(work, "Write", str(work / "specs/001-feature/spec.md")), bd_molecule)
+    assert decision(output) == "allow"
 
-def test_a_spec_file_that_is_not_tasks_md_is_allowed(work: Path, bd_active: dict[str, str]) -> None:
-    _, output = run_guard(write_payload(work, "Write", str(work / "specs/001-feature/spec.md")), bd_active)
+
+def test_spec_read_stays_allowed(work: Path, bd_active: dict[str, str]) -> None:
+    _, output = run_guard(bash_payload(work, "cat specs/001-feature/spec.md"), bd_active)
+    assert decision(output) == "allow"
+
+
+def test_spec_write_without_beads_stays_allowed(work: Path, bd_inactive: dict[str, str]) -> None:
+    _, output = run_guard(write_payload(work, "Write", str(work / "specs/001-feature/spec.md")), bd_inactive)
     assert decision(output) == "allow"
 
 
