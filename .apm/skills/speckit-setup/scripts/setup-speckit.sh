@@ -150,7 +150,7 @@ EXTENSIONS=(
   review=https://github.com/ismaelJimenez/spec-kit-review/archive/9ff6df9d967ed8d3606d3312900d1011feb522d9.zip
   roadmap=https://codeload.github.com/srobroek/speckit-roadmap/zip/refs/tags/v0.1.1
   security-review=https://github.com/DyanGalih/security-review/archive/refs/tags/v2.0.0.zip
-  status-report=latest-release:Open-Agent-Tools/spec-kit-status
+  status-report=https://codeload.github.com/Open-Agent-Tools/spec-kit-status/zip/refs/tags/v1.4.2
   tinyspec=https://github.com/Quratulain-bilal/spec-kit-tinyspec/archive/refs/tags/v1.0.0.zip
 )
 
@@ -300,9 +300,9 @@ for entry in "${EXTENSIONS[@]}"; do
         echo "    + $ext (from $url)"
         ;;
     esac
-    # `specify extension add --from` may prompt y/N (default: abort) for the
-    # directory-not-empty check on a fresh git repo -- pipe `y` to confirm.
-    if ! echo y | specify extension add "$ext" --from "$url"; then
+    # An unhealthy registry entry still counts as installed to Specify. Force
+    # replacement only after structured validation has marked it unhealthy.
+    if ! echo y | specify extension add "$ext" --from "$url" --force; then
       echo "    ERROR: could not install '$ext' from $url" >&2
       record_failed_extension "$ext"
       continue
