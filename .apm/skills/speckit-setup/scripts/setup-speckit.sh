@@ -138,15 +138,20 @@ CATALOG_URL="https://raw.githubusercontent.com/github/spec-kit/main/extensions/c
 # built without it.
 EXTENSIONS=(
   agent-context
-  agent-assign
-  bugfix cleanup critique
-  fix-findings iterate qa
-  refine retro
+  agent-assign=https://github.com/xymelon/spec-kit-agent-assign/archive/refs/tags/v1.0.0.zip
+  bugfix=https://github.com/Quratulain-bilal/spec-kit-bugfix/archive/refs/tags/v1.0.0.zip
+  cleanup=https://github.com/dsrednicki/spec-kit-cleanup/archive/refs/tags/v1.0.0.zip
+  critique=https://github.com/arunt14/spec-kit-critique/archive/refs/tags/v1.0.0.zip
+  fix-findings=https://github.com/Quratulain-bilal/spec-kit-fix-findings/archive/refs/tags/v1.0.0.zip
+  iterate=https://github.com/imviancagrace/spec-kit-iterate/archive/refs/tags/v2.0.0.zip
+  qa=https://github.com/arunt14/spec-kit-qa/archive/refs/tags/v1.0.0.zip
+  refine=https://github.com/Quratulain-bilal/spec-kit-refine/archive/refs/tags/v1.0.0.zip
+  retro=https://github.com/arunt14/spec-kit-retro/archive/refs/tags/v1.0.0.zip
   review=https://github.com/ismaelJimenez/spec-kit-review/archive/9ff6df9d967ed8d3606d3312900d1011feb522d9.zip
-  roadmap=https://github.com/srobroek/speckit-roadmap/archive/refs/tags/v0.1.1.zip
-  security-review
+  roadmap=https://codeload.github.com/srobroek/speckit-roadmap/zip/refs/tags/v0.1.1
+  security-review=https://github.com/DyanGalih/security-review/archive/refs/tags/v2.0.0.zip
   status-report=latest-release:Open-Agent-Tools/spec-kit-status
-  tinyspec
+  tinyspec=https://github.com/Quratulain-bilal/spec-kit-tinyspec/archive/refs/tags/v1.0.0.zip
 )
 
 # Legacy `specify workflow` definitions (the `workflow` primitive, not an
