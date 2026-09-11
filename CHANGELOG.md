@@ -1,5 +1,12 @@
 # Changelog
 
+## [6.0.2](https://github.com/srobroek/speckit-conductor/compare/v6.0.1...v6.0.2) (2026-09-11)
+
+
+### Bug Fixes
+
+* install required SpecKit extensions fail closed ([#20](https://github.com/srobroek/speckit-conductor/issues/20)) ([c658ec5](https://github.com/srobroek/speckit-conductor/commit/c658ec5b4cac4be97c10a902aedd9989722dcdff))
+
 ## [6.0.1](https://github.com/srobroek/speckit-conductor/compare/v6.0.0...v6.0.1) (2026-09-11)
 
 
