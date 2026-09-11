@@ -64,7 +64,11 @@ jobs:
           "$repo/.apm/skills/speckit-setup/scripts/setup-speckit.sh" --integration codex --render-for codex
           specify extension list --json | python3 -c '
           import json, sys
-          required = {"review", "roadmap"}
+          required = {
+              "agent-context", "agent-assign", "bugfix", "cleanup", "critique",
+              "fix-findings", "iterate", "qa", "refine", "retro", "review",
+              "roadmap", "security-review", "status-report", "tinyspec",
+          }
           enabled = {item["id"] for item in json.load(sys.stdin) if item.get("enabled") is True}
           missing = required - enabled
           assert not missing, f"required extensions are not enabled: {sorted(missing)}"
