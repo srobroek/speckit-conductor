@@ -69,6 +69,14 @@ jobs:
           missing = required - enabled
           assert not missing, f"required extensions are not enabled: {sorted(missing)}"
           '
+          sed -i 's/name: detect-changed-files/name: detect-changed-files.sh/' \
+            .specify/extensions/review/extension.yml
+          "$repo/.apm/skills/speckit-setup/scripts/setup-speckit.sh" --integration codex --render-for codex
+          specify extension list --json | python3 -c '
+          import json, sys
+          review = next(item for item in json.load(sys.stdin) if item["id"] == "review")
+          assert review.get("enabled") is True, "setup did not repair corrupted review"
+          '
 
       - name: Reject a missing required extension
         run: |

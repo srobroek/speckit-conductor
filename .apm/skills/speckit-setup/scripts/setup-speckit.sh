@@ -300,9 +300,9 @@ for entry in "${EXTENSIONS[@]}"; do
         echo "    + $ext (from $url)"
         ;;
     esac
-    # `specify extension add --from` may prompt y/N (default: abort) for the
-    # directory-not-empty check on a fresh git repo -- pipe `y` to confirm.
-    if ! echo y | specify extension add "$ext" --from "$url"; then
+    # An unhealthy registry entry still counts as installed to Specify. Force
+    # replacement only after structured validation has marked it unhealthy.
+    if ! echo y | specify extension add "$ext" --from "$url" --force; then
       echo "    ERROR: could not install '$ext' from $url" >&2
       record_failed_extension "$ext"
       continue
