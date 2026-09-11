@@ -116,28 +116,12 @@ CATALOG_URL="https://raw.githubusercontent.com/github/spec-kit/main/extensions/c
 # agent-assign is mandatory: steering routes implementation through the
 # agent-assign flow and the DAG hard-blocks the deprecated /speckit.implement.
 #
-# Entries are either a bare extension name (resolved from the community catalog)
-# or `name=source-url` for a first-party extension not yet in the catalog, which
-# installs via `specify extension add --from <url>`. Custom-source installs are
-# best-effort: an unreachable/unpublished source warns and is skipped rather than
-# aborting setup. One list, one source of truth; bash 3.2-safe (no associative arrays).
-#   roadmap -- the spec-roadmap extension (srobroek/speckit-roadmap); accepted into the
-#   community catalog 2026-06, so it resolves by name like the rest.
-#
-# An entry's source value (after `=`) takes one of two forms:
-#   * a direct archive URL              -> installed via `specify extension add NAME --from <url>`
-#   * `latest-release:<owner>/<repo>`   -> the latest published GitHub release tag is resolved
-#                                          at setup time and its .zip archive is installed
-# `specify extension add --from` requires a real archive URL (a bare repo URL is fetched as a
-# zip and fails); `latest-release:` exists so we track newest WITHOUT pinning a version.
-#   status-report -- the Open-Agent-Tools/spec-kit-status extension (catalog id
-#   `status-report`), NOT the single-commit KhawarHabibKhan `status` extension it
-#   replaced. Both ship a read-only progress command; status-report is the more
-#   maintained one (script-driven JSON, cross-platform). It provides
-#   `/speckit.status-report.show`. NOTE: despite its read-only catalog tag it
-#   writes `specs/spec-status.md` on every run -- gitignored in the scaffold.
-#   Installed via `latest-release:` (newest GitHub release tag resolved at setup
-#   time) rather than the community catalog, which lags behind upstream.
+# Entries are either a bare extension name resolved from the community catalog,
+# or `name=source-url` for a reviewed archive that the catalog does not yet
+# provide compatibly. Every entry is required: setup fails if installation or
+# post-install validation leaves an extension absent, disabled, or corrupted.
+# Direct URLs are immutable commits or release tags so repeat runs install the
+# same audited manifest.
 #
 # verify + verify-tasks are NOT in this list: verification runs via the merged
 # `speckit-verify` local agent (spawned as a prompt step in the workflow YAMLs),
@@ -154,12 +138,20 @@ CATALOG_URL="https://raw.githubusercontent.com/github/spec-kit/main/extensions/c
 # built without it.
 EXTENSIONS=(
   agent-context
-  agent-assign
-  bugfix cleanup critique
-  fix-findings iterate qa
-  refine retro review roadmap security-review
+  agent-assign=https://github.com/xymelon/spec-kit-agent-assign/archive/refs/tags/v1.0.0.zip
+  bugfix=https://github.com/Quratulain-bilal/spec-kit-bugfix/archive/refs/tags/v1.0.0.zip
+  cleanup=https://github.com/dsrednicki/spec-kit-cleanup/archive/refs/tags/v1.0.0.zip
+  critique=https://github.com/arunt14/spec-kit-critique/archive/refs/tags/v1.0.0.zip
+  fix-findings=https://github.com/Quratulain-bilal/spec-kit-fix-findings/archive/refs/tags/v1.0.0.zip
+  iterate=https://github.com/imviancagrace/spec-kit-iterate/archive/refs/tags/v2.0.0.zip
+  qa=https://github.com/arunt14/spec-kit-qa/archive/refs/tags/v1.0.0.zip
+  refine=https://github.com/Quratulain-bilal/spec-kit-refine/archive/refs/tags/v1.0.0.zip
+  retro=https://github.com/arunt14/spec-kit-retro/archive/refs/tags/v1.0.0.zip
+  review=https://github.com/ismaelJimenez/spec-kit-review/archive/9ff6df9d967ed8d3606d3312900d1011feb522d9.zip
+  roadmap=https://codeload.github.com/srobroek/speckit-roadmap/zip/refs/tags/v0.1.1
+  security-review=https://github.com/DyanGalih/security-review/archive/refs/tags/v2.0.0.zip
   status-report=latest-release:Open-Agent-Tools/spec-kit-status
-  tinyspec
+  tinyspec=https://github.com/Quratulain-bilal/spec-kit-tinyspec/archive/refs/tags/v1.0.0.zip
 )
 
 # Legacy `specify workflow` definitions (the `workflow` primitive, not an
@@ -172,6 +164,29 @@ LEGACY_WORKFLOWS=(speckit speckit-quality speckit-full)
 
 need() { command -v "$1" >/dev/null 2>&1 || { echo "ERROR: '$1' not found on PATH" >&2; exit 1; }; }
 need specify
+need python3
+
+extension_is_healthy() {
+  EXTENSION_ID="$1" EXTENSION_STATE_JSON="$2" python3 - <<'PY'
+import json
+import os
+import sys
+
+extension_id = os.environ["EXTENSION_ID"]
+try:
+    extensions = json.loads(os.environ["EXTENSION_STATE_JSON"])
+except (KeyError, json.JSONDecodeError):
+    sys.exit(1)
+sys.exit(0 if any(item.get("id") == extension_id and item.get("enabled") is True for item in extensions) else 1)
+PY
+}
+
+record_failed_extension() {
+  case " $FAILED_EXTENSIONS " in
+    *" $1 "*) ;;
+    *) FAILED_EXTENSIONS="$FAILED_EXTENSIONS $1" ;;
+  esac
+}
 
 # Require spec-kit >= 0.12.0: workflows are a first-class primitive (not an extension),
 # --no-git was removed, and specify-cli is published natively on PyPI.
@@ -204,7 +219,7 @@ else
   # stdin from /dev/null so the post-init "Agent Folder Security" prompt and any
   # other interactive confirmations resolve to their non-interactive default
   # instead of blocking (or aborting under set -e).
-  specify init --here --integration "$INTEGRATION" --script "$SCRIPT_FLAVOR" --force </dev/null
+  specify init --here --integration "$INTEGRATION" --script "$SCRIPT_FLAVOR" --force --ignore-agent-tools </dev/null
 fi
 
 echo "==> 2/6 register community extension catalog"
@@ -248,18 +263,16 @@ else
 fi
 
 echo "==> 3/6 install + enable ${#EXTENSIONS[@]} extensions"
-installed="$(specify extension list 2>/dev/null || true)"
+installed="$(specify extension list --json 2>/dev/null || printf '[]')"
 for entry in "${EXTENSIONS[@]}"; do
   # Split "name=source" (custom source) from a bare "name" (community catalog).
   ext="${entry%%=*}"
   src="${entry#*=}"
   [ "$src" = "$entry" ] && src=""   # no '=' present -> no custom source
-  if printf '%s\n' "$installed" | grep -qw "$ext"; then
-    echo "    = $ext (already installed)"
+  if extension_is_healthy "$ext" "$installed"; then
+    echo "    = $ext (already installed and enabled)"
   elif [ -n "$src" ]; then
-    # Custom-source extension (not in the community catalog). Best-effort:
-    # an unreachable/unpublished source warns and continues, leaving the rest
-    # of the required catalog set intact.
+    # Install a reviewed source when the required extension is not healthy.
     case "$src" in
       latest-release:*)
         repo="${src#latest-release:}"
@@ -275,7 +288,8 @@ for entry in "${EXTENSIONS[@]}"; do
                    | grep -m1 '"tag_name"' | sed 's/.*"tag_name"[^"]*"\([^"]*\)".*/\1/' || true)"
         fi
         if [ -z "$tag" ]; then
-          echo "    WARNING: could not resolve latest release of '$repo' for '$ext' -- skipping" >&2
+          echo "    ERROR: could not resolve latest release of '$repo' for '$ext'" >&2
+          record_failed_extension "$ext"
           continue
         fi
         url="https://github.com/${repo}/archive/refs/tags/${tag}.zip"
@@ -289,29 +303,34 @@ for entry in "${EXTENSIONS[@]}"; do
     # `specify extension add --from` may prompt y/N (default: abort) for the
     # directory-not-empty check on a fresh git repo -- pipe `y` to confirm.
     if ! echo y | specify extension add "$ext" --from "$url"; then
-      echo "    WARNING: could not install '$ext' from $url -- skipping (publish it or check access)" >&2
+      echo "    ERROR: could not install '$ext' from $url" >&2
+      record_failed_extension "$ext"
       continue
     fi
   else
     echo "    + $ext"
-    # Best-effort, matching the custom-source branch above: a single broken
-    # upstream (e.g. an extension whose tagged release archive 404s/400s) must
-    # NOT abort the whole required-extension install under set -e. Warn, record,
-    # and continue so the remaining catalog extensions still install.
+    # Record the failure and validate the complete required set below.
     if ! specify extension add "$ext" </dev/null; then
-      echo "    WARNING: could not install '$ext' from the '$CATALOG_NAME' catalog -- skipping" >&2
-      FAILED_EXTENSIONS="$FAILED_EXTENSIONS $ext"
+      echo "    ERROR: could not install '$ext' from the '$CATALOG_NAME' catalog" >&2
+      record_failed_extension "$ext"
       continue
     fi
   fi
   specify extension enable "$ext" </dev/null >/dev/null 2>&1 || true
 done
 
-# Surface any skipped extensions as a single end-of-step summary so a partial
-# install is visible without scrolling back through the per-extension output.
+# Validate the required set from Specify's structured state. This catches
+# registry entries that Specify retained but marked corrupted or disabled.
+final_state="$(specify extension list --json 2>/dev/null || printf '[]')"
+for entry in "${EXTENSIONS[@]}"; do
+  ext="${entry%%=*}"
+  if ! extension_is_healthy "$ext" "$final_state"; then
+    record_failed_extension "$ext"
+  fi
+done
 if [ -n "${FAILED_EXTENSIONS# }" ]; then
-  echo "    NOTE: these extensions were skipped (upstream unavailable):${FAILED_EXTENSIONS}" >&2
-  echo "          re-run setup-speckit.sh later to retry them once upstream is fixed." >&2
+  echo "ERROR: required extensions are unavailable or unhealthy:${FAILED_EXTENSIONS}" >&2
+  exit 1
 fi
 
 echo "==> 4/6 register extension commands for: ${RENDER_LIST[*]} (primary=$INTEGRATION)"

@@ -37,6 +37,54 @@ jobs:
             echo "no tests yet"
           fi
 
+  scaffold:
+    name: clean SpecKit scaffold
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+        with:
+          python-version: "3.13"
+          enable-cache: false
+
+      - name: Install Specify CLI 1.0 development release
+        run: uv tool install --from git+https://github.com/github/spec-kit.git specify-cli
+
+      - name: Run setup and validate required extensions
+        run: |
+          repo="$PWD"
+          project="$(mktemp -d)"
+          cd "$project"
+          git init -q .
+          "$repo/.apm/skills/speckit-setup/scripts/setup-speckit.sh" --integration codex --render-for codex
+          specify extension list --json | python3 -c '
+          import json, sys
+          required = {"review", "roadmap"}
+          enabled = {item["id"] for item in json.load(sys.stdin) if item.get("enabled") is True}
+          missing = required - enabled
+          assert not missing, f"required extensions are not enabled: {sorted(missing)}"
+          '
+
+      - name: Reject a missing required extension
+        run: |
+          repo="$PWD"
+          project="$(mktemp -d)"
+          broken_setup="$project/setup-speckit.sh"
+          sed 's#review=https://github.com/ismaelJimenez/spec-kit-review/archive/9ff6df9d967ed8d3606d3312900d1011feb522d9.zip#review=https://127.0.0.1:9/missing.zip#' \
+            "$repo/.apm/skills/speckit-setup/scripts/setup-speckit.sh" > "$broken_setup"
+          chmod +x "$broken_setup"
+          cd "$project"
+          git init -q .
+          if "$broken_setup" --integration codex --render-for codex; then
+            echo "setup accepted a missing required extension" >&2
+            exit 1
+          fi
+
   # v1.0.0 and v1.1.0 both shipped a package `apm install` REJECTED: APM requires a
   # .apm/ directory and neither release had one. The version resolved and the install
   # failed, which is the worst shape for a consumer. This gate is the install itself,
