@@ -150,7 +150,7 @@ EXTENSIONS=(
   review=https://github.com/ismaelJimenez/spec-kit-review/archive/9ff6df9d967ed8d3606d3312900d1011feb522d9.zip
   roadmap=https://codeload.github.com/srobroek/speckit-roadmap/zip/refs/tags/v0.1.1
   security-review=https://github.com/DyanGalih/security-review/archive/refs/tags/v2.0.0.zip
-  status-report=latest-release:Open-Agent-Tools/spec-kit-status
+  status-report=https://codeload.github.com/Open-Agent-Tools/spec-kit-status/zip/refs/tags/v1.4.2
   tinyspec=https://github.com/Quratulain-bilal/spec-kit-tinyspec/archive/refs/tags/v1.0.0.zip
 )
 
