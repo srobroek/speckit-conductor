@@ -1,5 +1,12 @@
 # Changelog
 
+## [6.0.3](https://github.com/srobroek/speckit-conductor/compare/v6.0.2...v6.0.3) (2026-09-11)
+
+
+### Bug Fixes
+
+* repair corrupted required extensions ([#22](https://github.com/srobroek/speckit-conductor/issues/22)) ([256779c](https://github.com/srobroek/speckit-conductor/commit/256779ca04c4732c7aa2043e0e91f95a6aed7759))
+
 ## [6.0.2](https://github.com/srobroek/speckit-conductor/compare/v6.0.1...v6.0.2) (2026-09-11)
 
 
