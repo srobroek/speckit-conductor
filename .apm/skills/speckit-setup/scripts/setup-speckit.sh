@@ -214,7 +214,7 @@ else
   # stdin from /dev/null so the post-init "Agent Folder Security" prompt and any
   # other interactive confirmations resolve to their non-interactive default
   # instead of blocking (or aborting under set -e).
-  specify init --here --integration "$INTEGRATION" --script "$SCRIPT_FLAVOR" --force </dev/null
+  specify init --here --integration "$INTEGRATION" --script "$SCRIPT_FLAVOR" --force --ignore-agent-tools </dev/null
 fi
 
 echo "==> 2/6 register community extension catalog"
