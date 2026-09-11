@@ -1,5 +1,12 @@
 # Changelog
 
+## [6.0.1](https://github.com/srobroek/speckit-conductor/compare/v6.0.0...v6.0.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* enforce molecule before spec writes ([4478e00](https://github.com/srobroek/speckit-conductor/commit/4478e00851e5564777cce0ef7509936b4ee81c6e))
+
 ## [6.0.0](https://github.com/srobroek/speckit-conductor/compare/v5.1.0...v6.0.0) (2026-08-23)
 
 
