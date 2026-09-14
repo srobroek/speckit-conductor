@@ -156,13 +156,19 @@ jobs:
           found=0
           # `bd cook` resolves the formula through a workspace, so a database has to
           # exist first: without it every cook fails "no beads database found",
-          # which reads as a broken formula rather than a missing init.
-          bd init --quiet
-          for f in formulas/*.formula.toml; do
+          # which reads as a broken formula rather than a missing init. The tracked
+          # .beads/metadata.json points at the developer machine's shared Dolt server,
+          repo="$PWD"
+          kitchen="$(mktemp -d)"
+          cd "$kitchen"
+          git init -q .
+          bd init --quiet --skip-hooks --skip-agents --prefix kitchen
+          mkdir -p .beads/formulas
+          for f in "$repo"/formulas/*.formula.toml; do
             found=1
             name="$(basename "$f" .formula.toml)"
             echo "== $name"
-            mkdir -p .beads/formulas && cp "$f" .beads/formulas/
+            cp "$f" .beads/formulas/
             bd cook "$name" >/dev/null
           done
           [ "$found" -eq 1 ] || echo "no formulas yet"
