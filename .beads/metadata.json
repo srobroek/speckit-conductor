@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "server",
+  "dolt_database": "speckit_conductor",
+  "project_id": "059cfa53-c875-4318-8a75-ab49dcda448f"
+}
