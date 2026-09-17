@@ -7,6 +7,7 @@ __pycache__/
 .dolt/
 *.db
 .beads-credential-key
+.beads.gate.lock
 .beads/proxieddb/
 
 # bd init writes a skill copy here; the package ships its own under .apm/
