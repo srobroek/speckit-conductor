@@ -3,7 +3,7 @@
 # here are undocumented upstream -- `condition` has zero hits in published bd docs --
 # so a floating version would make a green CI run meaningless.
 [tools]
-"aqua:gastownhall/beads" = "1.1.2"
+"aqua:gastownhall/beads" = "1.3.0"
 # The tasks guard and the DAG validator are python3, and the guard runs on every
 # Write/Edit in a consuming repository.
 python = "3.13"
